@@ -114,6 +114,8 @@ class OpenClawExecutor:
                 "NVIDIA_API_KEY": self.api_key,
                 "OPENCLAW_STATE_DIR": str(state_dir),
                 "OPENCLAW_CONFIG_PATH": str(config_path),
+                "HOME": "/tmp",
+                "NPM_CONFIG_CACHE": "/tmp/npm-cache",
             }
         )
         command = [
