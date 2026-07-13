@@ -1,0 +1,30 @@
+// Stage 0 template. NVIDIA_API_KEY is read from the process environment.
+{
+  models: {
+    providers: {
+      nvidia: {
+        baseUrl: "https://integrate.api.nvidia.com/v1",
+        api: "openai-completions",
+        timeoutSeconds: 300,
+      },
+    },
+  },
+  agents: {
+    defaults: {
+      model: {
+        primary: "nvidia/nvidia/nemotron-3-ultra-550b-a55b",
+        fallbacks: ["nvidia/nvidia/nemotron-3-super-120b-a12b"],
+      },
+      models: {
+        "nvidia/*": {},
+      },
+      timeoutSeconds: 300,
+      memorySearch: {
+        enabled: false,
+      },
+    },
+  },
+  tools: {
+    profile: "coding",
+  },
+}
