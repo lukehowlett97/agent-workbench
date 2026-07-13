@@ -65,6 +65,17 @@ Open <http://127.0.0.1:8000/> and authenticate using the configured
 credentials. The unauthenticated liveness endpoint is
 <http://127.0.0.1:8000/health>.
 
+Executor selection is explicit:
+
+```bash
+WORKBENCH_EXECUTOR=fixture    # tests and development
+WORKBENCH_EXECUTOR=openclaw   # VPS production
+```
+
+The `openclaw` executor uses `OPENCLAW_VERSION`, `WORKBENCH_MODEL` and the
+NVIDIA-compatible API configured by `NVIDIA_API_KEY`. Compose passes that key
+only to the worker; the web container never receives it.
+
 Alternatively:
 
 ```bash

@@ -7,7 +7,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 RUN addgroup --system workbench \
-    && adduser --system --ingroup workbench --home /home/workbench workbench
+    && adduser --system --ingroup workbench --home /home/workbench workbench \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends nodejs npm \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml README.md ./
 COPY src ./src

@@ -8,7 +8,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from agent_workbench.config import Settings
-from agent_workbench.executor import Executor, FixtureExecutor
+from agent_workbench.executor import Executor, FixtureExecutor, OpenClawExecutor
 from agent_workbench.jobs import JobRepository
 
 
@@ -37,8 +37,26 @@ class Worker:
             # Store only the exception class and bounded message; never a traceback.
             self.repository.fail(job.id, f"{type(exc).__name__}: {exc}")
         else:
-            self.repository.complete(job.id, result.markdown)
+            self.repository.complete(
+                job.id,
+                result.markdown,
+                result.executor,
+                result.model,
+            )
         return True
+
+
+def build_executor(settings: Settings) -> Executor:
+    """Build only the executor selected by the worker environment."""
+    if settings.executor == "fixture":
+        return FixtureExecutor()
+    if settings.executor == "openclaw":
+        return OpenClawExecutor(
+            api_key=settings.nvidia_api_key,
+            model=settings.model,
+            openclaw_version=settings.openclaw_version,
+        )
+    raise ValueError("WORKBENCH_EXECUTOR must be 'fixture' or 'openclaw'.")
 
 
 def main() -> int:
@@ -52,7 +70,7 @@ def main() -> int:
     repository = JobRepository(settings.data_dir / "workbench.sqlite3")
     repository.initialise()
     repository.recover_stale(timedelta(minutes=15))
-    worker = Worker(repository, FixtureExecutor(), settings.data_dir / "jobs")
+    worker = Worker(repository, build_executor(settings), settings.data_dir / "jobs")
 
     if args.once:
         worker.run_once()

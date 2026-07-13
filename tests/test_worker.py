@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from agent_workbench.executor import ExecutionResult, FixtureExecutor
+from agent_workbench.config import Settings
+from agent_workbench.executor import ExecutionResult, FixtureExecutor, OpenClawExecutor
 from agent_workbench.jobs import Job, JobRepository
-from agent_workbench.worker import Worker
+from agent_workbench.worker import Worker, build_executor
 
 
 def prepare_job(tmp_path: Path) -> tuple[JobRepository, Job]:
@@ -32,6 +33,8 @@ def test_worker_completes_claimed_job(tmp_path: Path) -> None:
     completed = repository.get(job.id)
     assert completed is not None
     assert completed.status == "completed"
+    assert completed.executor == "fixture"
+    assert completed.model == "fixture"
     assert "sample.txt" in (completed.result_markdown or "")
     assert (tmp_path / "jobs" / job.id / "output" / "report.md").exists()
 
@@ -59,3 +62,58 @@ def test_worker_returns_false_when_queue_is_empty(tmp_path: Path) -> None:
     repository.initialise()
 
     assert Worker(repository, FixtureExecutor(), tmp_path / "jobs").run_once() is False
+
+
+def test_worker_executor_selection_is_explicit() -> None:
+    assert isinstance(
+        build_executor(Settings(username="", password="", executor="fixture")),
+        FixtureExecutor,
+    )
+    assert isinstance(
+        build_executor(
+            Settings(
+                username="",
+                password="",
+                executor="openclaw",
+                nvidia_api_key="test-key",
+            )
+        ),
+        OpenClawExecutor,
+    )
+
+
+def test_worker_rejects_unknown_executor() -> None:
+    try:
+        build_executor(Settings(username="", password="", executor="unknown"))
+    except ValueError as exc:
+        assert "WORKBENCH_EXECUTOR" in str(exc)
+    else:
+        raise AssertionError("unknown executor should be rejected")
+
+
+def test_openclaw_executor_passes_api_key_only_to_subprocess(
+    tmp_path: Path, monkeypatch
+) -> None:
+    repository, job = prepare_job(tmp_path)
+    captured: dict[str, object] = {}
+
+    def fake_run(command, **kwargs):
+        captured["command"] = command
+        captured["env"] = kwargs["env"]
+        report = tmp_path / "jobs" / job.id / "output" / "report.md"
+        report.write_text("# OpenClaw report", encoding="utf-8")
+
+        class Completed:
+            stdout = ""
+
+        return Completed()
+
+    monkeypatch.setattr("agent_workbench.executor.subprocess.run", fake_run)
+    result = OpenClawExecutor("secret-key", "nvidia/test-model").execute(
+        job, tmp_path / "jobs" / job.id
+    )
+
+    assert result.executor == "openclaw"
+    assert result.model == "nvidia/test-model"
+    assert captured["env"]["NVIDIA_API_KEY"] == "secret-key"
+    assert "--message-file" in captured["command"]

@@ -76,22 +76,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
         return RedirectResponse(url=f"/jobs/{job.id}", status_code=303)
 
-    @application.get("/jobs/{job_id}", include_in_schema=False)
+    @application.get(
+        "/jobs/{job_id}", response_class=HTMLResponse, include_in_schema=False
+    )
     def job_detail(
+        request: Request,
         job_id: str,
         username: Annotated[str, Depends(require_user)],
-    ) -> dict[str, str]:
-        """Return the current state of one authenticated job."""
+    ) -> HTMLResponse:
+        """Render the current state and execution metadata."""
         del username
         job = repository.get(job_id)
         if job is None:
             raise HTTPException(status_code=404, detail="Job not found.")
-        return {
-            "id": job.id,
-            "prompt": job.prompt,
-            "status": job.status,
-            "created_at": job.created_at,
-        }
+        return templates.TemplateResponse(
+            request=request,
+            name="job.html",
+            context={"job": job},
+        )
 
     return application
 
