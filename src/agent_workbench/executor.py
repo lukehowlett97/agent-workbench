@@ -77,6 +77,7 @@ class OpenClawExecutor:
                             "nvidia": {
                                 "baseUrl": "https://integrate.api.nvidia.com/v1",
                                 "api": "openai-completions",
+                                "apiKey": "${NVIDIA_API_KEY}",
                                 "timeoutSeconds": self.timeout_seconds,
                             }
                         }
