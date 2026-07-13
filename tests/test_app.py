@@ -64,3 +64,22 @@ def test_missing_server_credentials_fail_closed() -> None:
 
     assert response.status_code == 503
     assert response.json() == {"detail": "Authentication is not configured."}
+
+
+def test_job_result_displays_executor_and_model() -> None:
+    client = make_client()
+    job = client.app.state.jobs.create("Check the report")
+    assert client.app.state.jobs.claim_next() is not None
+    client.app.state.jobs.complete(
+        job.id,
+        "# Report\n\nDone.",
+        "fixture",
+        "fixture",
+    )
+
+    response = client.get(f"/jobs/{job.id}", auth=("luke", "test-password"))
+
+    assert response.status_code == 200
+    assert "Executor" in response.text
+    assert "Model" in response.text
+    assert "fixture" in response.text

@@ -40,7 +40,9 @@ def test_submit_job_persists_file_and_job(tmp_path: Path) -> None:
 
     assert response.status_code == 303
     detail = client.get(response.headers["location"], auth=("luke", "secret"))
-    assert detail.json()["status"] == "queued"
+    assert detail.status_code == 200
+    assert "queued" in detail.text
+    assert "unknown" in detail.text
     stored = list((tmp_path / "jobs").glob("*/input/001-sample.csv"))
     assert len(stored) == 1
     assert stored[0].read_bytes() == b"value\n1\n"

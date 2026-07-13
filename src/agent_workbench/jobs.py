@@ -17,6 +17,8 @@ class Job:
     prompt: str
     status: str
     created_at: str
+    executor: str = "unknown"
+    model: str = "unknown"
     started_at: str | None = None
     completed_at: str | None = None
     result_markdown: str | None = None
@@ -46,6 +48,8 @@ class JobRepository:
                     prompt TEXT NOT NULL,
                     status TEXT NOT NULL,
                     created_at TEXT NOT NULL,
+                    executor TEXT NOT NULL DEFAULT 'unknown',
+                    model TEXT NOT NULL DEFAULT 'unknown',
                     started_at TEXT,
                     completed_at TEXT,
                     result_markdown TEXT,
@@ -53,6 +57,19 @@ class JobRepository:
                 )
                 """
             )
+            columns = {
+                row[1]
+                for row in connection.execute("PRAGMA table_info(jobs)").fetchall()
+            }
+            if "executor" not in columns:
+                connection.execute(
+                    "ALTER TABLE jobs ADD COLUMN executor TEXT NOT NULL "
+                    "DEFAULT 'unknown'"
+                )
+            if "model" not in columns:
+                connection.execute(
+                    "ALTER TABLE jobs ADD COLUMN model TEXT NOT NULL DEFAULT 'unknown'"
+                )
             connection.execute(
                 "CREATE INDEX IF NOT EXISTS jobs_status_created "
                 "ON jobs(status, created_at)"
@@ -106,13 +123,25 @@ class JobRepository:
             ).fetchone()
         return self._from_row(claimed)
 
-    def complete(self, job_id: str, result_markdown: str) -> None:
+    def complete(
+        self,
+        job_id: str,
+        result_markdown: str,
+        executor: str,
+        model: str,
+    ) -> None:
         with self.connect() as connection:
             connection.execute(
                 "UPDATE jobs SET status = 'completed', completed_at = ?, "
-                "result_markdown = ?, error_summary = NULL "
+                "result_markdown = ?, executor = ?, model = ?, error_summary = NULL "
                 "WHERE id = ? AND status = 'running'",
-                (datetime.now(UTC).isoformat(), result_markdown, job_id),
+                (
+                    datetime.now(UTC).isoformat(),
+                    result_markdown,
+                    executor,
+                    model,
+                    job_id,
+                ),
             )
 
     def fail(self, job_id: str, summary: str) -> None:

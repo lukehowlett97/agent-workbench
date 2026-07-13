@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Job {{ job.id }} · Agent Workbench</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; background:#0b0e14; color:#edf2f8 }
+    * { box-sizing:border-box } body { margin:0; padding:2rem; background:#0b0e14 }
+    main { width:min(70rem,100%); margin:auto } a { color:#73daca }
+    section { margin-top:1.5rem; padding:1.5rem; border:1px solid #2b3747; border-radius:1.2rem; background:#111720e6 }
+    .muted { color:#9eabba } .status { color:#d2a6ff; text-transform:uppercase; font-size:.8rem }
+    .metadata { display:grid; grid-template-columns:repeat(auto-fit,minmax(12rem,1fr)); gap:1rem }
+    .metadata div { padding:.8rem; background:#0b1018; border-radius:.6rem }
+    pre { white-space:pre-wrap; line-height:1.5; font:inherit }
+  </style>
+</head>
+<body>
+<main>
+  <p><a href="/">← Back to workbench</a></p>
+  <h1>Analysis result</h1>
+  <div class="status">{{ job.status }}</div>
+  <section class="metadata" aria-label="Execution metadata">
+    <div><span class="muted">Executor</span><br>{{ job.executor }}</div>
+    <div><span class="muted">Model</span><br>{{ job.model }}</div>
+    <div><span class="muted">Job ID</span><br>{{ job.id }}</div>
+  </section>
+  <section>
+    <h2>Prompt</h2>
+    <pre>{{ job.prompt }}</pre>
+  </section>
+  {% if job.result_markdown %}
+  <section>
+    <h2>Report</h2>
+    <pre>{{ job.result_markdown }}</pre>
+  </section>
+  {% elif job.error_summary %}
+  <section>
+    <h2>Failure</h2>
+    <pre>{{ job.error_summary }}</pre>
+  </section>
+  {% else %}
+  <section><p class="muted">This job is still {{ job.status }}.</p></section>
+  {% endif %}
+</main>
+</body>
+</html>

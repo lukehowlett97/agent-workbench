@@ -15,6 +15,10 @@ class Settings:
     password: str
     environment: str = "development"
     data_dir: Path = Path("data")
+    executor: str = "fixture"
+    model: str = "nvidia/nemotron-3-super-120b-a12b"
+    nvidia_api_key: str = ""
+    openclaw_version: str = "2026.6.11"
     max_file_bytes: int = 25 * 1024 * 1024
     max_job_bytes: int = 100 * 1024 * 1024
 
@@ -26,6 +30,12 @@ class Settings:
             password=os.getenv("WORKBENCH_PASSWORD", ""),
             environment=os.getenv("WORKBENCH_ENVIRONMENT", "development"),
             data_dir=Path(os.getenv("WORKBENCH_DATA_DIR", "data")),
+            executor=os.getenv("WORKBENCH_EXECUTOR", "fixture"),
+            model=os.getenv(
+                "WORKBENCH_MODEL", "nvidia/nemotron-3-super-120b-a12b"
+            ),
+            nvidia_api_key=os.getenv("NVIDIA_API_KEY", ""),
+            openclaw_version=os.getenv("OPENCLAW_VERSION", "2026.6.11"),
             max_file_bytes=int(
                 os.getenv("WORKBENCH_MAX_FILE_BYTES", str(25 * 1024 * 1024))
             ),
