@@ -17,13 +17,15 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+from dotenv import load_dotenv
 from openai import OpenAI
 
 DEFAULT_BASE_URL = "https://integrate.api.nvidia.com/v1"
 DEFAULT_MODELS = (
-    "nvidia/nemotron-3-ultra-550b-a55b",
     "nvidia/nemotron-3-super-120b-a12b",
+    "nvidia/nemotron-3-ultra-550b-a55b",
 )
+EXPECTED_COMPLETION = "NIM connection successful"
 
 
 @dataclass
@@ -46,6 +48,7 @@ def create_client() -> OpenAI:
     Raises:
         RuntimeError: If NVIDIA_API_KEY is missing.
     """
+    load_dotenv()
     api_key = os.getenv("NVIDIA_API_KEY")
     if not api_key:
         raise RuntimeError("NVIDIA_API_KEY is required and must not be committed.")
@@ -79,14 +82,14 @@ def validate_model(client: OpenAI, model: str) -> CheckResult:
             messages=[
                 {
                     "role": "user",
-                    "content": "Reply with exactly: NIM connection successful",
+                    "content": f"Reply with exactly: {EXPECTED_COMPLETION}",
                 }
             ],
             temperature=0,
             max_tokens=64,
         )
         answer = (completion.choices[0].message.content or "").strip()
-        completion_ok = "NIM connection successful" in answer
+        completion_ok = answer == EXPECTED_COMPLETION
         details.append(f"completion={answer!r}")
     except Exception as exc:  # The report must preserve provider failure context.
         details.append(f"completion_error={type(exc).__name__}: {exc}")
@@ -178,6 +181,7 @@ def main() -> int:
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
 
+    load_dotenv()
     models = args.models or [
         os.getenv("NVIDIA_PRIMARY_MODEL", DEFAULT_MODELS[0]),
         os.getenv("NVIDIA_COMPARISON_MODEL", DEFAULT_MODELS[1]),
