@@ -90,7 +90,8 @@ class JobRepository:
         with self.connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             row = connection.execute(
-                "SELECT id FROM jobs WHERE status = 'queued' ORDER BY created_at LIMIT 1"
+                "SELECT id FROM jobs WHERE status = 'queued' "
+                "ORDER BY created_at LIMIT 1"
             ).fetchone()
             if row is None:
                 return None

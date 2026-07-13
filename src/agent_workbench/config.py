@@ -19,7 +19,7 @@ class Settings:
     max_job_bytes: int = 100 * 1024 * 1024
 
     @classmethod
-    def from_env(cls) -> "Settings":
+    def from_env(cls) -> Settings:
         """Load authentication, storage and environment settings."""
         return cls(
             username=os.getenv("WORKBENCH_USERNAME", ""),
