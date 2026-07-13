@@ -1,0 +1,15 @@
+.git
+.github
+.venv
+.stage0
+__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+.env
+data
+docs
+fixtures
+openclaw
+scripts
+tests
