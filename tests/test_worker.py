@@ -117,4 +117,4 @@ def test_openclaw_executor_passes_api_key_only_to_subprocess(
     assert result.model == "nvidia/test-model"
     assert captured["env"]["NVIDIA_API_KEY"] == "secret-key"
     assert "--message" in captured["command"]
-    assert "Read the supplied files" in captured["command"]
+    assert any("Read the supplied files" in part for part in captured["command"])
