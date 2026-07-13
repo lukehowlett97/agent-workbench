@@ -1,3 +1,5 @@
+FROM node:22-bookworm-slim AS node-runtime
+
 FROM python:3.12-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -8,9 +10,12 @@ WORKDIR /app
 
 RUN addgroup --system workbench \
     && adduser --system --ingroup workbench --home /home/workbench workbench \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends nodejs npm \
-    && rm -rf /var/lib/apt/lists/*
+    && mkdir -p /usr/local/lib/node_modules
+
+COPY --from=node-runtime /usr/local/bin/node /usr/local/bin/node
+COPY --from=node-runtime /usr/local/bin/npm /usr/local/bin/npm
+COPY --from=node-runtime /usr/local/bin/npx /usr/local/bin/npx
+COPY --from=node-runtime /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/npm
 
 COPY pyproject.toml README.md ./
 COPY src ./src
