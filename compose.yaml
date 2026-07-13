@@ -6,8 +6,11 @@ services:
       WORKBENCH_USERNAME: "${WORKBENCH_USERNAME:?Set WORKBENCH_USERNAME}"
       WORKBENCH_PASSWORD: "${WORKBENCH_PASSWORD:?Set WORKBENCH_PASSWORD}"
       WORKBENCH_ENVIRONMENT: "${WORKBENCH_ENVIRONMENT:-development}"
+      WORKBENCH_DATA_DIR: /data
     ports:
       - "127.0.0.1:18090:8000"
+    volumes:
+      - workbench-data:/data
     read_only: true
     tmpfs:
       - /tmp:size=32m,mode=1777
@@ -24,5 +27,28 @@ services:
         - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"
       interval: 10s
       timeout: 3s
-      retries: 3
-      start_period: 5s
+        retries: 3
+        start_period: 5s
+
+  worker:
+    build:
+      context: .
+    command: ["agent-workbench-worker"]
+    environment:
+      WORKBENCH_USERNAME: "${WORKBENCH_USERNAME:?Set WORKBENCH_USERNAME}"
+      WORKBENCH_PASSWORD: "${WORKBENCH_PASSWORD:?Set WORKBENCH_PASSWORD}"
+      WORKBENCH_ENVIRONMENT: "${WORKBENCH_ENVIRONMENT:-development}"
+      WORKBENCH_DATA_DIR: /data
+    volumes:
+      - workbench-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+
+volumes:
+  workbench-data:
