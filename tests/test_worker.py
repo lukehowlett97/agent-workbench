@@ -192,8 +192,7 @@ def test_gateway_executor_uses_remote_gateway_without_provider_key(
     assert captured["env"]["OPENCLAW_GATEWAY_TOKEN"] == "gateway-secret"
     assert "NVIDIA_API_KEY" not in captured["env"]
     assert '"url": "ws://gateway:18789"' in captured["config"]
-    assert '"token": "${OPENCLAW_GATEWAY_TOKEN}"' in captured["config"]
-    assert "gateway-secret" not in captured["config"]
+    assert '"token": "gateway-secret"' in captured["config"]
 
 
 def test_gateway_executor_redacts_token_in_process_errors(

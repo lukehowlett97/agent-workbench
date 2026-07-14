@@ -243,7 +243,7 @@ class OpenClawGatewayExecutor:
                         "mode": "remote",
                         "remote": {
                             "url": self.gateway_url,
-                            "token": "${OPENCLAW_GATEWAY_TOKEN}",
+                            "token": self.gateway_token,
                         },
                     }
                 }
