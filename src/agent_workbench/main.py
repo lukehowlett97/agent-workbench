@@ -4,17 +4,18 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Annotated
+from uuid import uuid4
 
 import uvicorn
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from agent_workbench.auth import require_user
 from agent_workbench.config import Settings
 from agent_workbench.jobs import JobRepository
 from agent_workbench.storage import store_uploads
-from agent_workbench.workspaces import WorkspaceRepository
+from agent_workbench.workspaces import Artefact, WorkspaceRepository
 
 PACKAGE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=PACKAGE_DIR / "templates")
@@ -96,7 +97,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             runtime_settings.model,
         )
         try:
-            await store_uploads(
+            uploads = await store_uploads(
                 files,
                 runtime_settings.data_dir / "workspaces" / workspace.id,
                 runtime_settings.max_file_bytes,
@@ -104,6 +105,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             )
         except (OSError, ValueError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+        workspaces.record_artefacts(
+            workspace.id,
+            [
+                Artefact(
+                    str(uuid4()),
+                    workspace.id,
+                    None,
+                    "input",
+                    upload.original_name,
+                    upload.stored_name,
+                    upload.media_type,
+                    upload.size,
+                    upload.sha256,
+                    workspace.created_at,
+                )
+                for upload in uploads
+            ],
+        )
         return RedirectResponse(url=f"/workspaces/{workspace.id}", status_code=303)
 
     @application.get(
@@ -129,6 +148,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "workspace": workspace,
                 "messages": workspaces.messages_for(workspace_id),
                 "runs": runs,
+                "artefacts": workspaces.artefacts_for(workspace_id),
                 "has_active_run": any(
                     run.status in {"queued", "running"} for run in runs
                 ),
@@ -173,6 +193,41 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(status_code=404, detail="Workspace not found.")
         workspaces.archive(workspace_id)
         return RedirectResponse(url="/", status_code=303)
+
+    @application.get("/workspaces/{workspace_id}/artefacts/{artefact_id}")
+    def download_artefact(
+        workspace_id: str,
+        artefact_id: str,
+        username: Annotated[str, Depends(require_user)],
+    ) -> FileResponse:
+        """Download a recorded artefact without accepting filesystem paths."""
+        del username
+        artefact = next(
+            (
+                item
+                for item in workspaces.artefacts_for(workspace_id)
+                if item.id == artefact_id
+            ),
+            None,
+        )
+        if artefact is None:
+            raise HTTPException(status_code=404, detail="Artefact not found.")
+        root = runtime_settings.data_dir / "workspaces" / workspace_id
+        directory = root / "input"
+        if artefact.kind == "output":
+            directory = root / "output" / (artefact.run_id or "")
+        path = (directory / artefact.stored_name).resolve()
+        try:
+            path.relative_to(directory.resolve())
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail="Artefact not found.") from exc
+        if path.is_symlink() or not path.is_file():
+            raise HTTPException(status_code=404, detail="Artefact not found.")
+        return FileResponse(
+            path,
+            media_type=artefact.media_type,
+            filename=artefact.original_name,
+        )
 
     @application.get(
         "/jobs/{job_id}", response_class=HTMLResponse, include_in_schema=False

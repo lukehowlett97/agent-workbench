@@ -82,6 +82,11 @@ class WorkspaceWorker:
                 result.model,
                 int((monotonic() - started) * 1000),
             )
+            self.repository.inventory_output(
+                run.workspace_id,
+                run.id,
+                self.workspaces_dir / run.workspace_id / "output" / run.id,
+            )
         return True
 
 

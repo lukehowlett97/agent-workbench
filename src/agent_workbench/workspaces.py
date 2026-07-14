@@ -5,8 +5,11 @@ from __future__ import annotations
 
 import sqlite3
 import uuid
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from hashlib import sha256
+from mimetypes import guess_type
 from pathlib import Path
 
 
@@ -52,6 +55,20 @@ class Run:
     completed_at: str | None = None
     error_summary: str | None = None
     duration_ms: int | None = None
+
+
+@dataclass(frozen=True)
+class Artefact:
+    id: str
+    workspace_id: str
+    run_id: str | None
+    kind: str
+    original_name: str
+    stored_name: str
+    media_type: str
+    size_bytes: int
+    sha256: str
+    created_at: str
 
 
 class WorkspaceRepository:
@@ -202,6 +219,47 @@ class WorkspaceRepository:
         with self.connect() as connection:
             rows = connection.execute("SELECT r.*, m.content AS prompt, w.session_key FROM runs r JOIN messages m ON m.id = r.trigger_message_id JOIN workspaces w ON w.id = r.workspace_id WHERE r.workspace_id = ? ORDER BY r.created_at", (workspace_id,)).fetchall()
         return [Run(**dict(row)) for row in rows]
+
+    def artefacts_for(self, workspace_id: str) -> list[Artefact]:
+        with self.connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM artefacts WHERE workspace_id = ? ORDER BY created_at",
+                (workspace_id,),
+            ).fetchall()
+        return [Artefact(**dict(row)) for row in rows]
+
+    def record_artefacts(self, workspace_id: str, artefacts: Iterable[Artefact]) -> None:
+        with self.connect() as connection:
+            connection.executemany(
+                "INSERT OR IGNORE INTO artefacts VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [tuple(artefact.__dict__.values()) for artefact in artefacts],
+            )
+
+    def inventory_output(self, workspace_id: str, run_id: str, output_dir: Path) -> None:
+        """Record regular output files without following links outside the workspace."""
+        if not output_dir.is_dir():
+            return
+        artefacts: list[Artefact] = []
+        for path in output_dir.rglob("*"):
+            if path.is_symlink() or not path.is_file():
+                continue
+            stored_name = str(path.relative_to(output_dir))
+            digest = sha256(path.read_bytes()).hexdigest()
+            artefacts.append(
+                Artefact(
+                    str(uuid.uuid4()),
+                    workspace_id,
+                    run_id,
+                    "output",
+                    path.name,
+                    stored_name,
+                    guess_type(path.name)[0] or "application/octet-stream",
+                    path.stat().st_size,
+                    digest,
+                    now(),
+                )
+            )
+        self.record_artefacts(workspace_id, artefacts)
 
     def add_follow_up(self, workspace_id: str, content: str) -> tuple[Message, Run]:
         with self.connect() as connection:

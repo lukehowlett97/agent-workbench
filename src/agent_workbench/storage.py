@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import mimetypes
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -22,6 +23,7 @@ class StoredFile:
     stored_name: str
     size: int
     sha256: str
+    media_type: str
 
 
 async def store_uploads(
@@ -63,7 +65,13 @@ async def store_uploads(
                 stream.write(chunk)
 
         stored.append(
-            StoredFile(original, stored_name, size, digest.hexdigest())
+            StoredFile(
+                original,
+                stored_name,
+                size,
+                digest.hexdigest(),
+                mimetypes.guess_type(original)[0] or "application/octet-stream",
+            )
         )
 
     return stored
