@@ -71,7 +71,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         workspace = runtime_settings.data_dir / "jobs" / job.id
         try:
             await store_uploads(
-                files or [],
+                [upload for upload in files or [] if upload.filename],
                 workspace,
                 runtime_settings.max_file_bytes,
                 runtime_settings.max_job_bytes,
@@ -98,7 +98,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         try:
             uploads = await store_uploads(
-                files or [],
+                [upload for upload in files or [] if upload.filename],
                 runtime_settings.data_dir / "workspaces" / workspace.id,
                 runtime_settings.max_file_bytes,
                 runtime_settings.max_job_bytes,

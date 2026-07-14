@@ -141,7 +141,7 @@ def test_workspace_creation_accepts_prompt_without_files(tmp_path: Path) -> None
         "/workspaces",
         auth=("luke", "test-password"),
         data={"prompt": "Give me three ideas for a local science project."},
-        files=[],
+        files={"files": ("", b"", "application/octet-stream")},
         follow_redirects=False,
     )
 
