@@ -31,6 +31,19 @@
         <input id="title" name="title" maxlength="120" placeholder="Dataset exploration">
         <label for="prompt">What should the agent do?</label>
         <textarea id="prompt" name="prompt" maxlength="20000" required></textarea>
+        <label for="mode">Mode</label>
+        <select id="mode" name="mode">
+          <option value="ask">Ask — answer a prompt; files optional</option>
+          <option value="analyse">Analyse — investigate uploaded files</option>
+          <option value="workflow">Workflow — use a reviewed file workflow</option>
+        </select>
+        <label for="workflow">Workflow <span class="muted">(Workflow mode only)</span></label>
+        <select id="workflow" name="workflow">
+          <option value="">Select a workflow</option>
+          {% for workflow in workflows %}
+          <option value="{{ workflow.id }}">{{ workflow.name }} — {{ workflow.description }}</option>
+          {% endfor %}
+        </select>
         <label for="files">Files <span class="muted">(optional)</span></label>
         <input id="files" name="files" type="file" accept=".csv,.json,.md,.pdf,.txt" multiple>
         <button type="submit">Create workspace</button>

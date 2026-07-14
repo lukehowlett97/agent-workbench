@@ -15,6 +15,7 @@ from agent_workbench.auth import require_user
 from agent_workbench.config import Settings
 from agent_workbench.jobs import JobRepository
 from agent_workbench.storage import store_uploads
+from agent_workbench.workflows import WORKFLOWS, build_task_prompt, validate_submission
 from agent_workbench.workspaces import Artefact, WorkspaceRepository
 
 PACKAGE_DIR = Path(__file__).resolve().parent
@@ -56,6 +57,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "username": username,
                 "environment": runtime_settings.environment,
                 "workspaces": workspaces.list_workspaces(),
+                "workflows": WORKFLOWS,
             },
         )
 
@@ -85,20 +87,28 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def create_workspace(
         username: Annotated[str, Depends(require_user)],
         prompt: Annotated[str, Form(min_length=1, max_length=20_000)],
+        mode: Annotated[str, Form()] = "ask",
+        workflow: Annotated[str, Form()] = "",
         files: Annotated[list[UploadFile] | None, File()] = None,
         title: Annotated[str, Form(max_length=120)] = "",
     ) -> RedirectResponse:
         """Create a workspace, its first message, and queued first run."""
         del username
+        uploads = [upload for upload in files or [] if upload.filename]
+        try:
+            validate_submission(mode, workflow, len(uploads))
+            task_prompt = build_task_prompt(mode, workflow, prompt)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         workspace, _, _ = workspaces.create_workspace(
             title or prompt.strip().splitlines()[0],
-            prompt,
+            task_prompt,
             runtime_settings.executor,
             runtime_settings.model,
         )
         try:
             uploads = await store_uploads(
-                [upload for upload in files or [] if upload.filename],
+                uploads,
                 runtime_settings.data_dir / "workspaces" / workspace.id,
                 runtime_settings.max_file_bytes,
                 runtime_settings.max_job_bytes,
