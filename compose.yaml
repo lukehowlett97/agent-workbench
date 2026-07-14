@@ -45,6 +45,8 @@ services:
       WORKBENCH_DATA_DIR: /data
       OPENCLAW_STATE_DIR: /state
       OPENCLAW_CONFIG_PATH: /state/openclaw.json
+      HOME: /state/home
+      NPM_CONFIG_CACHE: /state/npm-cache
       OPENCLAW_GATEWAY_WORKSPACE: /data/gateway-workspace
       OPENCLAW_GATEWAY_TIMEOUT_SECONDS: "${OPENCLAW_GATEWAY_TIMEOUT_SECONDS:-300}"
     ports:

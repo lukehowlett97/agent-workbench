@@ -7,6 +7,18 @@ import os
 from pathlib import Path
 
 
+def merge_config(existing: dict[str, object], managed: dict[str, object]) -> dict[str, object]:
+    """Preserve interactive settings while enforcing managed runtime settings."""
+    merged = existing.copy()
+    for key, value in managed.items():
+        previous = merged.get(key)
+        if isinstance(previous, dict) and isinstance(value, dict):
+            merged[key] = merge_config(previous, value)
+        else:
+            merged[key] = value
+    return merged
+
+
 def build_gateway_config(
     *,
     model: str,
@@ -56,6 +68,17 @@ def build_gateway_config(
     }
 
 
+def load_existing_config(config_path: Path) -> dict[str, object]:
+    """Return a user-maintained OpenClaw config, ignoring incomplete first-run files."""
+    if not config_path.is_file():
+        return {}
+    try:
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+    return config if isinstance(config, dict) else {}
+
+
 def main() -> None:
     """Write config and replace this process with the OpenClaw Gateway."""
     if not os.getenv("NVIDIA_API_KEY", ""):
@@ -75,17 +98,19 @@ def main() -> None:
     timeout_seconds = int(os.getenv("OPENCLAW_GATEWAY_TIMEOUT_SECONDS", "300"))
 
     state_dir.mkdir(parents=True, exist_ok=True)
+    (state_dir / "home").mkdir(parents=True, exist_ok=True)
+    (state_dir / "npm-cache").mkdir(parents=True, exist_ok=True)
     workspace.mkdir(parents=True, exist_ok=True)
+    config = merge_config(
+        load_existing_config(config_path),
+        build_gateway_config(
+            model=model,
+            workspace=workspace,
+            timeout_seconds=timeout_seconds,
+        ),
+    )
     config_path.write_text(
-        json.dumps(
-            build_gateway_config(
-                model=model,
-                workspace=workspace,
-                timeout_seconds=timeout_seconds,
-            ),
-            indent=2,
-        )
-        + "\n",
+        json.dumps(config, indent=2) + "\n",
         encoding="utf-8",
     )
 
