@@ -50,6 +50,9 @@ services:
     volumes:
       - workbench-data:/data
       - openclaw-state:/state
+    # The persistent OpenClaw state volume is initialized by Docker as root.
+    # Keep web and worker unprivileged; the private Gateway owns this volume.
+    user: "0:0"
     read_only: true
     tmpfs:
       - /tmp:size=512m,mode=1777,exec
