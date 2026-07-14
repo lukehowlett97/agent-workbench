@@ -147,8 +147,14 @@ class OpenClawExecutor:
             )
         except subprocess.TimeoutExpired as exc:
             raise RuntimeError("OpenClaw timed out.") from exc
-        except (OSError, subprocess.CalledProcessError) as exc:
-            raise RuntimeError("OpenClaw execution failed.") from exc
+        except subprocess.CalledProcessError as exc:
+            details = (exc.stderr or exc.stdout or "no diagnostic output").strip()
+            details = details.replace(self.api_key, "[redacted]")
+            raise RuntimeError(
+                f"OpenClaw exited {exc.returncode}: {details[-800:]}"
+            ) from exc
+        except OSError as exc:
+            raise RuntimeError(f"OpenClaw could not start: {exc}") from exc
 
         report_path = workspace / "output" / "report.md"
         if report_path.is_file():
