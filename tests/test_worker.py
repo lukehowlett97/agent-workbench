@@ -101,6 +101,8 @@ def test_openclaw_executor_passes_api_key_only_to_subprocess(
     def fake_run(command, **kwargs):
         captured["command"] = command
         captured["env"] = kwargs["env"]
+        config = Path(kwargs["env"]["OPENCLAW_CONFIG_PATH"])
+        captured["config"] = config.read_text(encoding="utf-8")
         report = tmp_path / "jobs" / job.id / "output" / "report.md"
         report.write_text("# OpenClaw report", encoding="utf-8")
 
@@ -120,6 +122,8 @@ def test_openclaw_executor_passes_api_key_only_to_subprocess(
     assert "--message" in captured["command"]
     assert f"agent:main:workbench:{job.id}" in captured["command"]
     assert any("Read the supplied files" in part for part in captured["command"])
+    assert '"id": "test-model"' in captured["config"]
+    assert '"maxTokens": 8192' in captured["config"]
 
 
 def test_openclaw_executor_redacts_key_in_process_errors(
