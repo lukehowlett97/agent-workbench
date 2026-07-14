@@ -36,7 +36,7 @@ services:
     build:
       context: .
       args:
-        OPENCLAW_VERSION: "${OPENCLAW_VERSION:-2026.6.11}"
+        OPENCLAW_VERSION: "${OPENCLAW_VERSION:-2026.7.1}"
     command: ["agent-workbench-gateway"]
     environment:
       NVIDIA_API_KEY: "${NVIDIA_API_KEY:?Set NVIDIA_API_KEY}"
@@ -76,7 +76,7 @@ services:
     build:
       context: .
       args:
-        OPENCLAW_VERSION: "${OPENCLAW_VERSION:-2026.6.11}"
+        OPENCLAW_VERSION: "${OPENCLAW_VERSION:-2026.7.1}"
     command: ["agent-workbench-worker"]
     environment:
       WORKBENCH_USERNAME: "${WORKBENCH_USERNAME:?Set WORKBENCH_USERNAME}"

@@ -38,7 +38,7 @@ class Settings:
                 "WORKBENCH_MODEL", "nvidia/nemotron-3-super-120b-a12b"
             ),
             nvidia_api_key=os.getenv("NVIDIA_API_KEY", ""),
-            openclaw_version=os.getenv("OPENCLAW_VERSION", "2026.6.11"),
+            openclaw_version=os.getenv("OPENCLAW_VERSION", "2026.7.1"),
             openclaw_gateway_url=os.getenv(
                 "OPENCLAW_GATEWAY_URL", "ws://gateway:18789"
             ),
