@@ -190,6 +190,7 @@ def test_gateway_executor_uses_remote_gateway_without_provider_key(
     assert "--message-file" in captured["command"]
     assert f"agent:main:workbench:{job.id}" in captured["command"]
     assert captured["env"]["OPENCLAW_GATEWAY_TOKEN"] == "gateway-secret"
+    assert captured["env"]["OPENCLAW_GATEWAY_URL"] == "ws://gateway:18789"
     assert "NVIDIA_API_KEY" not in captured["env"]
     assert '"url": "ws://gateway:18789"' in captured["config"]
     assert '"token": "gateway-secret"' in captured["config"]

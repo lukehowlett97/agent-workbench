@@ -289,6 +289,7 @@ class OpenClawGatewayExecutor:
             {
                 "OPENCLAW_STATE_DIR": str(client_state),
                 "OPENCLAW_CONFIG_PATH": str(config_path),
+                "OPENCLAW_GATEWAY_URL": self.gateway_url,
                 "OPENCLAW_GATEWAY_TOKEN": self.gateway_token,
                 "OPENCLAW_ALLOW_INSECURE_PRIVATE_WS": "1",
                 "HOME": "/tmp",
