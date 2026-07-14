@@ -298,8 +298,6 @@ class OpenClawGatewayExecutor:
             "main",
             "--session-key",
             getattr(job, "session_key", f"agent:main:workbench:{job.id}"),
-            "--model",
-            self.model,
             "--message-file",
             str(task_path),
             "--timeout",

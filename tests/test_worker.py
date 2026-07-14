@@ -186,6 +186,7 @@ def test_gateway_executor_uses_remote_gateway_without_provider_key(
     assert result.executor == "openclaw-gateway"
     assert captured["command"][0:2] == ["openclaw", "agent"]
     assert "--local" not in captured["command"]
+    assert "--model" not in captured["command"]
     assert "--message-file" in captured["command"]
     assert f"agent:main:workbench:{job.id}" in captured["command"]
     assert captured["env"]["OPENCLAW_GATEWAY_TOKEN"] == "gateway-secret"
