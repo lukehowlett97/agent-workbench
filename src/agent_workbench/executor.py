@@ -66,6 +66,10 @@ class OpenClawExecutor:
 
     def execute(self, job: Job, workspace: Path) -> ExecutionResult:
         """Run OpenClaw with only the current job workspace available."""
+        provider, separator, model_id = self.model.partition("/")
+        if provider != "nvidia" or not separator or not model_id:
+            raise ValueError("OpenClaw NVIDIA models must use nvidia/<model-id>.")
+
         state_dir = workspace / ".openclaw-state"
         state_dir.mkdir(parents=True, exist_ok=True)
         config_path = state_dir / "openclaw.json"
@@ -79,6 +83,17 @@ class OpenClawExecutor:
                                 "api": "openai-completions",
                                 "apiKey": "${NVIDIA_API_KEY}",
                                 "timeoutSeconds": self.timeout_seconds,
+                                "contextWindow": 131_072,
+                                "maxTokens": 8_192,
+                                "models": [
+                                    {
+                                        "id": model_id,
+                                        "name": model_id,
+                                        "input": ["text"],
+                                        "contextWindow": 131_072,
+                                        "maxTokens": 8_192,
+                                    }
+                                ],
                             }
                         }
                     },
