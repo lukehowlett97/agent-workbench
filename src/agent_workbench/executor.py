@@ -128,7 +128,7 @@ class OpenClawExecutor:
             "--agent",
             "main",
             "--session-key",
-            f"agent:workbench:{job.id}",
+            f"agent:main:workbench:{job.id}",
             "--message",
             task_path.read_text(encoding="utf-8"),
             "--timeout",
