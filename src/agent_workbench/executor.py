@@ -288,7 +288,9 @@ class OpenClawGatewayExecutor:
                 f"OpenClaw Gateway exited {exc.returncode}: {details[-800:]}"
             ) from exc
         except OSError as exc:
-            raise RuntimeError(f"OpenClaw Gateway client could not start: {exc}") from exc
+            raise RuntimeError(
+                f"OpenClaw Gateway client could not start: {exc}"
+            ) from exc
 
         report_path = output_dir / "report.md"
         if report_path.is_file():
