@@ -72,7 +72,7 @@ def main() -> None:
         "WORKBENCH_MODEL",
         "nvidia/nemotron-3-super-120b-a12b",
     )
-    timeout_seconds = int(os.getenv("OPENCLAW_TIMEOUT_SECONDS", "300"))
+    timeout_seconds = int(os.getenv("OPENCLAW_GATEWAY_TIMEOUT_SECONDS", "300"))
 
     state_dir.mkdir(parents=True, exist_ok=True)
     workspace.mkdir(parents=True, exist_ok=True)
