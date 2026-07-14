@@ -16,8 +16,9 @@ See [the MVP implementation plan](docs/mvp-implementation-plan.md).
 ## Current status
 
 - Stage 0: NVIDIA NIM chat and tool calling validated.
-- Stage 1: authenticated FastAPI application shell.
-- Next: persistent jobs, uploads and the isolated worker.
+- Authenticated FastAPI interface, persistent jobs and file uploads.
+- Background worker with local and persistent Gateway OpenClaw executors.
+- Next: streamed progress, conversations, workflows and reviewed skills.
 
 Nemotron 3 Super is the current primary model because initial testing showed
 cleaner instruction following and substantially lower latency than Ultra.
@@ -68,13 +69,15 @@ credentials. The unauthenticated liveness endpoint is
 Executor selection is explicit:
 
 ```bash
-WORKBENCH_EXECUTOR=fixture    # tests and development
-WORKBENCH_EXECUTOR=openclaw   # VPS production
+WORKBENCH_EXECUTOR=fixture             # tests and development
+WORKBENCH_EXECUTOR=openclaw            # one local runtime per job
+WORKBENCH_EXECUTOR=openclaw-gateway    # persistent VPS Gateway
 ```
 
-The `openclaw` executor uses `OPENCLAW_VERSION`, `WORKBENCH_MODEL` and the
-NVIDIA-compatible API configured by `NVIDIA_API_KEY`. Compose passes that key
-only to the worker; the web container never receives it.
+The recommended `openclaw-gateway` executor submits jobs to one authenticated,
+long-lived Gateway. Compose passes `NVIDIA_API_KEY` only to that Gateway; the
+web and worker containers never receive it. See
+[the persistent Gateway deployment guide](docs/persistent-gateway.md).
 
 Alternatively:
 
@@ -99,10 +102,10 @@ configuration, deployment, backups and restoration documentation.
 
 ## Security
 
-Uploaded files are untrusted input. The eventual agent worker will be isolated
-from SSH keys, the Docker socket, application source and unrelated VPS data.
-The Stage 1 container already runs as a non-root user with a read-only
-filesystem, dropped Linux capabilities and no-new-privileges.
+Uploaded files are untrusted input. The services run as a non-root user with a
+read-only filesystem, dropped Linux capabilities and no-new-privileges. The
+persistent Gateway currently sees the shared jobs volume, so it is a
+single-user security boundary rather than a multi-tenant sandbox.
 
 ## Licence
 
