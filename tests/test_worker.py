@@ -6,7 +6,12 @@ import subprocess
 from pathlib import Path
 
 from agent_workbench.config import Settings
-from agent_workbench.executor import ExecutionResult, FixtureExecutor, OpenClawExecutor
+from agent_workbench.executor import (
+    ExecutionResult,
+    FixtureExecutor,
+    OpenClawExecutor,
+    OpenClawGatewayExecutor,
+)
 from agent_workbench.jobs import Job, JobRepository
 from agent_workbench.worker import Worker, build_executor
 
@@ -150,3 +155,63 @@ def test_openclaw_executor_redacts_key_in_process_errors(
         assert "secret-key" not in str(exc)
     else:
         raise AssertionError("OpenClaw error should be reported")
+
+
+def test_gateway_executor_uses_remote_gateway_without_provider_key(
+    tmp_path: Path, monkeypatch
+) -> None:
+    repository, job = prepare_job(tmp_path)
+    captured: dict[str, object] = {}
+    monkeypatch.delenv("NVIDIA_API_KEY", raising=False)
+
+    def fake_run(command, **kwargs):
+        captured["command"] = command
+        captured["env"] = kwargs["env"]
+        config = Path(kwargs["env"]["OPENCLAW_CONFIG_PATH"])
+        captured["config"] = config.read_text(encoding="utf-8")
+        report = tmp_path / "jobs" / job.id / "output" / "report.md"
+        report.write_text("# Gateway report", encoding="utf-8")
+
+        class Completed:
+            stdout = ""
+
+        return Completed()
+
+    monkeypatch.setattr("agent_workbench.executor.subprocess.run", fake_run)
+    result = OpenClawGatewayExecutor(
+        "ws://gateway:18789", "gateway-secret", "nvidia/test-model"
+    ).execute(job, tmp_path / "jobs" / job.id)
+
+    assert result.executor == "openclaw-gateway"
+    assert captured["command"][0:2] == ["openclaw", "agent"]
+    assert "--local" not in captured["command"]
+    assert "--message-file" in captured["command"]
+    assert f"agent:main:workbench:{job.id}" in captured["command"]
+    assert captured["env"]["OPENCLAW_GATEWAY_TOKEN"] == "gateway-secret"
+    assert "NVIDIA_API_KEY" not in captured["env"]
+    assert '"url": "ws://gateway:18789"' in captured["config"]
+    assert "gateway-secret" not in captured["config"]
+
+
+def test_gateway_executor_redacts_token_in_process_errors(
+    tmp_path: Path, monkeypatch
+) -> None:
+    repository, job = prepare_job(tmp_path)
+
+    def fake_run(*_args, **_kwargs):
+        raise subprocess.CalledProcessError(
+            1, "openclaw", stderr="authentication failed for gateway-secret"
+        )
+
+    monkeypatch.setattr("agent_workbench.executor.subprocess.run", fake_run)
+
+    try:
+        OpenClawGatewayExecutor(
+            "ws://gateway:18789", "gateway-secret", "nvidia/test-model"
+        ).execute(job, tmp_path / "jobs" / job.id)
+    except RuntimeError as exc:
+        assert "OpenClaw Gateway exited 1" in str(exc)
+        assert "[redacted]" in str(exc)
+        assert "gateway-secret" not in str(exc)
+    else:
+        raise AssertionError("Gateway error should be reported")
