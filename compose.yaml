@@ -47,6 +47,9 @@ services:
       OPENCLAW_CONFIG_PATH: /state/openclaw.json
       OPENCLAW_GATEWAY_WORKSPACE: /data/gateway-workspace
       OPENCLAW_GATEWAY_TIMEOUT_SECONDS: "${OPENCLAW_GATEWAY_TIMEOUT_SECONDS:-300}"
+    ports:
+      # Native OpenClaw Control UI; reach it through an SSH tunnel only.
+      - "127.0.0.1:18789:18789"
     volumes:
       - workbench-data:/data
       - openclaw-state:/state
