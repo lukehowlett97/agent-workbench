@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ workspace.title }} · Agent Workbench</title>
+  {% if has_active_run %}<meta http-equiv="refresh" content="3">{% endif %}
+  <style>
+    :root { color-scheme:dark; font-family:system-ui,sans-serif; background:#0b0e14; color:#edf2f8 } * { box-sizing:border-box } body { margin:0; padding:1.5rem; background:#0b0e14 } main { width:min(90rem,100%); margin:auto } a { color:#73daca } .layout { display:grid; grid-template-columns:16rem minmax(0,1fr) 18rem; gap:1rem } section { padding:1rem; border:1px solid #2b3747; border-radius:1rem; background:#111720e6 } .message { margin-bottom:1rem } .message p { white-space:pre-wrap; line-height:1.5 } .user { border-left:3px solid #73daca; padding-left:.8rem } .assistant { border-left:3px solid #d2a6ff; padding-left:.8rem } .muted,.metadata { color:#9eabba; font-size:.85rem } textarea,input { width:100%; padding:.8rem; margin:.5rem 0; color:inherit; background:#0b1018; border:1px solid #35445a; border-radius:.6rem } textarea { min-height:8rem } button { padding:.7rem 1rem; border:0; border-radius:.6rem; background:#73daca; color:#07110f; font-weight:700; cursor:pointer } .run { margin:.7rem 0; padding:.7rem; background:#0b1018; border-radius:.6rem } @media(max-width:850px){ .layout { grid-template-columns:1fr } }
+  </style>
+</head>
+<body>
+<main>
+  <p><a href="/">← Workspaces</a></p>
+  <header><h1>{{ workspace.title }}</h1><div class="metadata">{{ workspace.executor }} · {{ workspace.model }} · {{ workspace.status }}</div></header>
+  <div class="layout">
+    <section><h2>Workspace</h2><form action="/workspaces/{{ workspace.id }}/rename" method="post"><input name="title" value="{{ workspace.title }}" maxlength="120" required><button>Rename</button></form>{% if workspace.status == 'active' %}<form action="/workspaces/{{ workspace.id }}/archive" method="post"><button>Archive</button></form>{% endif %}</section>
+    <section><h2>Conversation</h2>{% for message in messages %}<article class="message {{ message.role }}"><div class="metadata">{{ message.role }} · {{ message.created_at }}</div><p>{{ message.content }}</p></article>{% endfor %}{% if workspace.status == 'active' %}<form action="/workspaces/{{ workspace.id }}/messages" method="post"><label for="content">Follow-up</label><textarea id="content" name="content" maxlength="20000" required {% if has_active_run %}disabled{% endif %}></textarea><button type="submit" {% if has_active_run %}disabled{% endif %}>Send follow-up</button>{% if has_active_run %}<p class="muted">A run is in progress. This page refreshes automatically.</p>{% endif %}</form>{% endif %}</section>
+    <section><h2>Runs</h2>{% for run in runs %}<div class="run"><strong>{{ run.status }}</strong><div class="metadata">{{ run.executor }} · {{ run.model }}</div><div class="metadata">{{ run.created_at }}{% if run.duration_ms is not none %} · {{ run.duration_ms }} ms{% endif %}</div>{% if run.error_summary %}<p>{{ run.error_summary }}</p>{% endif %}</div>{% endfor %}</section>
+  </div>
+</main>
+</body>
+</html>

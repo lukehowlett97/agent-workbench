@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
 from agent_workbench.config import Settings
@@ -83,3 +85,41 @@ def test_job_result_displays_executor_and_model() -> None:
     assert "Executor" in response.text
     assert "Model" in response.text
     assert "fixture" in response.text
+
+
+def test_workspace_creation_and_follow_up_route(tmp_path: Path) -> None:
+    client = TestClient(
+        create_app(
+            Settings(
+                username="luke",
+                password="test-password",
+                environment="test",
+                data_dir=tmp_path,
+                max_file_bytes=100,
+                max_job_bytes=100,
+            )
+        )
+    )
+    response = client.post(
+        "/workspaces",
+        auth=("luke", "test-password"),
+        data={"title": "CSV review", "prompt": "Summarise the file"},
+        files={"files": ("sample.csv", b"value\n1\n", "text/csv")},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    location = response.headers["location"]
+    detail = client.get(location, auth=("luke", "test-password"))
+    assert detail.status_code == 200
+    assert "CSV review" in detail.text
+    assert "Summarise the file" in detail.text
+
+    follow_up = client.post(
+        f"{location}/messages",
+        auth=("luke", "test-password"),
+        data={"content": "Now explain the trend"},
+        follow_redirects=False,
+    )
+    assert follow_up.status_code == 409
+    assert "running analysis" in follow_up.json()["detail"]

@@ -25,28 +25,30 @@
   </header>
   <div class="grid">
     <section>
-      <h2>New analysis</h2>
-      <form action="/jobs" method="post" enctype="multipart/form-data">
+      <h2>New workspace</h2>
+      <form action="/workspaces" method="post" enctype="multipart/form-data">
+        <label for="title">Workspace title</label>
+        <input id="title" name="title" maxlength="120" placeholder="Dataset exploration">
         <label for="prompt">What should the agent do?</label>
         <textarea id="prompt" name="prompt" maxlength="20000" required></textarea>
         <label for="files">Files</label>
         <input id="files" name="files" type="file" accept=".csv,.json,.md,.pdf,.txt" multiple required>
-        <button type="submit">Queue analysis</button>
+        <button type="submit">Create workspace</button>
       </form>
     </section>
     <section>
-      <h2>Recent jobs</h2>
-      {% if jobs %}
+      <h2>Workspaces</h2>
+      {% if workspaces %}
       <ol>
-        {% for job in jobs %}
+        {% for workspace in workspaces %}
         <li>
-          <a href="/jobs/{{ job.id }}">{{ job.prompt[:70] }}</a>
-          <div class="status">{{ job.status }}</div>
+          <a href="/workspaces/{{ workspace.id }}">{{ workspace.title }}</a>
+          <div class="status">{{ workspace.model }}</div>
         </li>
         {% endfor %}
       </ol>
       {% else %}
-      <p class="muted">No jobs submitted yet.</p>
+      <p class="muted">No active workspaces yet.</p>
       {% endif %}
     </section>
   </div>
