@@ -124,6 +124,8 @@ def test_openclaw_executor_passes_api_key_only_to_subprocess(
     assert any("Read the supplied files" in part for part in captured["command"])
     assert '"id": "test-model"' in captured["config"]
     assert '"maxTokens": 8192' in captured["config"]
+    workspace = tmp_path / "jobs" / job.id
+    assert f'"workspace": "{workspace}"' in captured["config"]
 
 
 def test_openclaw_executor_redacts_key_in_process_errors(

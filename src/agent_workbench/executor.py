@@ -99,6 +99,7 @@ class OpenClawExecutor:
                     },
                     "agents": {
                         "defaults": {
+                            "workspace": str(workspace),
                             "model": {"primary": self.model},
                             "models": {"nvidia/*": {}},
                             "timeoutSeconds": self.timeout_seconds,
