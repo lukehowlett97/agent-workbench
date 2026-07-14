@@ -31,8 +31,8 @@
         <input id="title" name="title" maxlength="120" placeholder="Dataset exploration">
         <label for="prompt">What should the agent do?</label>
         <textarea id="prompt" name="prompt" maxlength="20000" required></textarea>
-        <label for="files">Files</label>
-        <input id="files" name="files" type="file" accept=".csv,.json,.md,.pdf,.txt" multiple required>
+        <label for="files">Files <span class="muted">(optional)</span></label>
+        <input id="files" name="files" type="file" accept=".csv,.json,.md,.pdf,.txt" multiple>
         <button type="submit">Create workspace</button>
       </form>
     </section>

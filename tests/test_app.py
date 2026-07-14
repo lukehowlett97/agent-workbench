@@ -123,3 +123,29 @@ def test_workspace_creation_and_follow_up_route(tmp_path: Path) -> None:
     )
     assert follow_up.status_code == 409
     assert "running analysis" in follow_up.json()["detail"]
+
+
+def test_workspace_creation_accepts_prompt_without_files(tmp_path: Path) -> None:
+    client = TestClient(
+        create_app(
+            Settings(
+                username="luke",
+                password="test-password",
+                environment="test",
+                data_dir=tmp_path,
+            )
+        )
+    )
+
+    response = client.post(
+        "/workspaces",
+        auth=("luke", "test-password"),
+        data={"prompt": "Give me three ideas for a local science project."},
+        files=[],
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    detail = client.get(response.headers["location"], auth=("luke", "test-password"))
+    assert detail.status_code == 200
+    assert "Give me three ideas for a local science project." in detail.text

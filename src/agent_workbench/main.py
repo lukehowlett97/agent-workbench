@@ -63,7 +63,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def submit_job(
         username: Annotated[str, Depends(require_user)],
         prompt: Annotated[str, Form(min_length=1, max_length=20_000)],
-        files: Annotated[list[UploadFile], File()],
+        files: Annotated[list[UploadFile] | None, File()] = None,
     ) -> RedirectResponse:
         """Create a queued job and safely persist its uploads."""
         del username
@@ -71,7 +71,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         workspace = runtime_settings.data_dir / "jobs" / job.id
         try:
             await store_uploads(
-                files,
+                files or [],
                 workspace,
                 runtime_settings.max_file_bytes,
                 runtime_settings.max_job_bytes,
@@ -85,7 +85,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def create_workspace(
         username: Annotated[str, Depends(require_user)],
         prompt: Annotated[str, Form(min_length=1, max_length=20_000)],
-        files: Annotated[list[UploadFile], File()],
+        files: Annotated[list[UploadFile] | None, File()] = None,
         title: Annotated[str, Form(max_length=120)] = "",
     ) -> RedirectResponse:
         """Create a workspace, its first message, and queued first run."""
@@ -98,7 +98,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         try:
             uploads = await store_uploads(
-                files,
+                files or [],
                 runtime_settings.data_dir / "workspaces" / workspace.id,
                 runtime_settings.max_file_bytes,
                 runtime_settings.max_job_bytes,
