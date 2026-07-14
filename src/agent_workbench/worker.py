@@ -9,7 +9,12 @@ from pathlib import Path
 from time import monotonic
 
 from agent_workbench.config import Settings
-from agent_workbench.executor import Executor, FixtureExecutor, OpenClawExecutor
+from agent_workbench.executor import (
+    Executor,
+    FixtureExecutor,
+    OpenClawExecutor,
+    OpenClawGatewayExecutor,
+)
 from agent_workbench.jobs import JobRepository
 from agent_workbench.workspaces import WorkspaceRepository
 
@@ -36,7 +41,6 @@ class Worker:
         try:
             result = self.executor.execute(job, self.jobs_dir / job.id)
         except Exception as exc:
-            # Store only the exception class and bounded message; never a traceback.
             self.repository.fail(job.id, f"{type(exc).__name__}: {exc}")
         else:
             self.repository.complete(
@@ -100,7 +104,17 @@ def build_executor(settings: Settings) -> Executor:
             model=settings.model,
             openclaw_version=settings.openclaw_version,
         )
-    raise ValueError("WORKBENCH_EXECUTOR must be 'fixture' or 'openclaw'.")
+    if settings.executor == "openclaw-gateway":
+        return OpenClawGatewayExecutor(
+            gateway_url=settings.openclaw_gateway_url,
+            gateway_token=settings.openclaw_gateway_token,
+            model=settings.model,
+            timeout_seconds=settings.openclaw_timeout_seconds,
+        )
+    raise ValueError(
+        "WORKBENCH_EXECUTOR must be 'fixture', 'openclaw', "
+        "or 'openclaw-gateway'."
+    )
 
 
 def main() -> int:

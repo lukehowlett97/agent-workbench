@@ -32,9 +32,48 @@ services:
       retries: 3
       start_period: 5s
 
+  gateway:
+    build:
+      context: .
+      args:
+        OPENCLAW_VERSION: "${OPENCLAW_VERSION:-2026.6.11}"
+    command: ["agent-workbench-gateway"]
+    environment:
+      NVIDIA_API_KEY: "${NVIDIA_API_KEY:?Set NVIDIA_API_KEY}"
+      OPENCLAW_GATEWAY_TOKEN: "${OPENCLAW_GATEWAY_TOKEN:?Set OPENCLAW_GATEWAY_TOKEN}"
+      WORKBENCH_MODEL: "${WORKBENCH_MODEL:-nvidia/nemotron-3-super-120b-a12b}"
+      WORKBENCH_DATA_DIR: /data
+      OPENCLAW_STATE_DIR: /state
+      OPENCLAW_CONFIG_PATH: /state/openclaw.json
+      OPENCLAW_GATEWAY_WORKSPACE: /data/jobs
+      OPENCLAW_GATEWAY_TIMEOUT_SECONDS: "${OPENCLAW_GATEWAY_TIMEOUT_SECONDS:-300}"
+    volumes:
+      - workbench-data:/data
+      - openclaw-state:/state
+    read_only: true
+    tmpfs:
+      - /tmp:size=512m,mode=1777,exec
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import socket; connection = socket.create_connection(('127.0.0.1', 18789), 2); connection.close()"
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 20s
+
   worker:
     build:
       context: .
+      args:
+        OPENCLAW_VERSION: "${OPENCLAW_VERSION:-2026.6.11}"
     command: ["agent-workbench-worker"]
     environment:
       WORKBENCH_USERNAME: "${WORKBENCH_USERNAME:?Set WORKBENCH_USERNAME}"
@@ -42,8 +81,10 @@ services:
       WORKBENCH_ENVIRONMENT: "${WORKBENCH_ENVIRONMENT:-development}"
       WORKBENCH_EXECUTOR: "${WORKBENCH_EXECUTOR:-fixture}"
       WORKBENCH_MODEL: "${WORKBENCH_MODEL:-nvidia/nemotron-3-super-120b-a12b}"
-      NVIDIA_API_KEY: "${NVIDIA_API_KEY:-}"
       WORKBENCH_DATA_DIR: /data
+      OPENCLAW_GATEWAY_URL: "${OPENCLAW_GATEWAY_URL:-ws://gateway:18789}"
+      OPENCLAW_GATEWAY_TOKEN: "${OPENCLAW_GATEWAY_TOKEN:-}"
+      OPENCLAW_GATEWAY_TIMEOUT_SECONDS: "${OPENCLAW_GATEWAY_TIMEOUT_SECONDS:-300}"
     volumes:
       - workbench-data:/data
     read_only: true
@@ -54,6 +95,10 @@ services:
     cap_drop:
       - ALL
     restart: unless-stopped
+    depends_on:
+      gateway:
+        condition: service_healthy
 
 volumes:
   workbench-data:
+  openclaw-state:
