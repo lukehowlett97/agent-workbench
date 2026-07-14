@@ -44,7 +44,10 @@ class Settings:
             ),
             openclaw_gateway_token=os.getenv("OPENCLAW_GATEWAY_TOKEN", ""),
             openclaw_timeout_seconds=int(
-                os.getenv("OPENCLAW_TIMEOUT_SECONDS", "300")
+                os.getenv(
+                    "OPENCLAW_GATEWAY_TIMEOUT_SECONDS",
+                    os.getenv("OPENCLAW_TIMEOUT_SECONDS", "300"),
+                )
             ),
             max_file_bytes=int(
                 os.getenv("WORKBENCH_MAX_FILE_BYTES", str(25 * 1024 * 1024))

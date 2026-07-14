@@ -14,6 +14,7 @@ from agent_workbench.executor import (
 )
 from agent_workbench.jobs import Job, JobRepository
 from agent_workbench.worker import Worker, build_executor
+from agent_workbench.workspaces import Run
 
 
 def prepare_job(tmp_path: Path) -> tuple[JobRepository, Job]:
@@ -215,3 +216,43 @@ def test_gateway_executor_redacts_token_in_process_errors(
         assert "gateway-secret" not in str(exc)
     else:
         raise AssertionError("Gateway error should be reported")
+
+
+def test_gateway_executor_preserves_workspace_run_session_and_output(
+    tmp_path: Path, monkeypatch
+) -> None:
+    workspace = tmp_path / "workspaces" / "workspace-1"
+    (workspace / "input").mkdir(parents=True)
+    run = Run(
+        "run-1",
+        "workspace-1",
+        "message-1",
+        "Explain the result",
+        "agent:main:workspace:workspace-1",
+        "running",
+        "2026-07-14T12:00:00+00:00",
+    )
+    captured: dict[str, object] = {}
+
+    def fake_run(command, **kwargs):
+        captured["command"] = command
+        report = workspace / "output" / run.id / "report.md"
+        report.parent.mkdir(parents=True, exist_ok=True)
+        report.write_text("# Answer", encoding="utf-8")
+
+        class Completed:
+            stdout = ""
+
+        return Completed()
+
+    monkeypatch.setattr("agent_workbench.executor.subprocess.run", fake_run)
+    result = OpenClawGatewayExecutor(
+        "ws://gateway:18789", "gateway-secret", "nvidia/test-model"
+    ).execute(run, workspace)
+
+    assert result.markdown == "# Answer"
+    assert run.session_key in captured["command"]
+    task_path = Path(
+        captured["command"][captured["command"].index("--message-file") + 1]
+    )
+    assert "Answer the user's request directly" in task_path.read_text()
