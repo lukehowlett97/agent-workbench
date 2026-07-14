@@ -170,11 +170,9 @@ def test_gateway_executor_uses_remote_gateway_without_provider_key(
         captured["env"] = kwargs["env"]
         config = Path(kwargs["env"]["OPENCLAW_CONFIG_PATH"])
         captured["config"] = config.read_text(encoding="utf-8")
-        report = tmp_path / "jobs" / job.id / "output" / "report.md"
-        report.write_text("# Gateway report", encoding="utf-8")
 
         class Completed:
-            stdout = ""
+            stdout = '{"result": {"payloads": [{"text": "# Gateway report"}]}}'
 
         return Completed()
 
@@ -188,6 +186,7 @@ def test_gateway_executor_uses_remote_gateway_without_provider_key(
     assert "--local" not in captured["command"]
     assert "--model" not in captured["command"]
     assert "--message-file" in captured["command"]
+    assert captured["command"][-2:] == ["--thinking", "off"]
     assert f"agent:main:workbench:{job.id}" in captured["command"]
     assert captured["env"]["OPENCLAW_GATEWAY_TOKEN"] == "gateway-secret"
     assert captured["env"]["OPENCLAW_GATEWAY_URL"] == "ws://gateway:18789"
