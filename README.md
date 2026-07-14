@@ -87,6 +87,20 @@ make compose-up
 
 The Compose service listens only on <http://127.0.0.1:18090>.
 
+## Work modes
+
+The interface separates three kinds of work:
+
+- **Ask** provides direct answers and accepts optional supporting files.
+- **Analyse** investigates one or more uploaded files using a free-form brief.
+- **Workflow** applies a reviewed prompt template with explicit file requirements.
+
+The initial workflows cover file summarisation, action extraction, document
+comparison and tabular data-quality review. A job stores both the user's
+original request and the reviewed execution prompt, together with its mode and
+workflow identifier. This provides a safe path towards enabling selected
+OpenClaw skills per workflow later.
+
 ## Checks
 
 ```bash
