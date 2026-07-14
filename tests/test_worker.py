@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 from agent_workbench.config import Settings
@@ -118,3 +119,27 @@ def test_openclaw_executor_passes_api_key_only_to_subprocess(
     assert captured["env"]["NVIDIA_API_KEY"] == "secret-key"
     assert "--message" in captured["command"]
     assert any("Read the supplied files" in part for part in captured["command"])
+
+
+def test_openclaw_executor_redacts_key_in_process_errors(
+    tmp_path: Path, monkeypatch
+) -> None:
+    repository, job = prepare_job(tmp_path)
+
+    def fake_run(*_args, **_kwargs):
+        raise subprocess.CalledProcessError(
+            1, "openclaw", stderr="authentication failed for secret-key"
+        )
+
+    monkeypatch.setattr("agent_workbench.executor.subprocess.run", fake_run)
+
+    try:
+        OpenClawExecutor("secret-key", "nvidia/test-model").execute(
+            job, tmp_path / "jobs" / job.id
+        )
+    except RuntimeError as exc:
+        assert "OpenClaw exited 1" in str(exc)
+        assert "[redacted]" in str(exc)
+        assert "secret-key" not in str(exc)
+    else:
+        raise AssertionError("OpenClaw error should be reported")
