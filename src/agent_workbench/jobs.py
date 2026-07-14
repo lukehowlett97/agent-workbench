@@ -17,6 +17,9 @@ class Job:
     prompt: str
     status: str
     created_at: str
+    task_prompt: str = ""
+    mode: str = "analyse"
+    workflow: str = ""
     executor: str = "unknown"
     model: str = "unknown"
     started_at: str | None = None
@@ -48,6 +51,9 @@ class JobRepository:
                     prompt TEXT NOT NULL,
                     status TEXT NOT NULL,
                     created_at TEXT NOT NULL,
+                    task_prompt TEXT NOT NULL DEFAULT '',
+                    mode TEXT NOT NULL DEFAULT 'analyse',
+                    workflow TEXT NOT NULL DEFAULT '',
                     executor TEXT NOT NULL DEFAULT 'unknown',
                     model TEXT NOT NULL DEFAULT 'unknown',
                     started_at TEXT,
@@ -61,6 +67,21 @@ class JobRepository:
                 row[1]
                 for row in connection.execute("PRAGMA table_info(jobs)").fetchall()
             }
+            if "task_prompt" not in columns:
+                connection.execute(
+                    "ALTER TABLE jobs ADD COLUMN task_prompt TEXT NOT NULL DEFAULT ''"
+                )
+                connection.execute(
+                    "UPDATE jobs SET task_prompt = prompt WHERE task_prompt = ''"
+                )
+            if "mode" not in columns:
+                connection.execute(
+                    "ALTER TABLE jobs ADD COLUMN mode TEXT NOT NULL DEFAULT 'analyse'"
+                )
+            if "workflow" not in columns:
+                connection.execute(
+                    "ALTER TABLE jobs ADD COLUMN workflow TEXT NOT NULL DEFAULT ''"
+                )
             if "executor" not in columns:
                 connection.execute(
                     "ALTER TABLE jobs ADD COLUMN executor TEXT NOT NULL "
@@ -75,13 +96,38 @@ class JobRepository:
                 "ON jobs(status, created_at)"
             )
 
-    def create(self, prompt: str) -> Job:
-        """Persist a new queued job."""
-        job = Job(str(uuid.uuid4()), prompt, "queued", datetime.now(UTC).isoformat())
+    def create(
+        self,
+        prompt: str,
+        *,
+        task_prompt: str | None = None,
+        mode: str = "analyse",
+        workflow: str = "",
+    ) -> Job:
+        """Persist a new queued job with its reviewed execution instructions."""
+        job = Job(
+            str(uuid.uuid4()),
+            prompt,
+            "queued",
+            datetime.now(UTC).isoformat(),
+            task_prompt or prompt,
+            mode,
+            workflow,
+        )
         with self.connect() as connection:
             connection.execute(
-                "INSERT INTO jobs(id, prompt, status, created_at) VALUES (?, ?, ?, ?)",
-                (job.id, job.prompt, job.status, job.created_at),
+                "INSERT INTO jobs("
+                "id, prompt, status, created_at, task_prompt, mode, workflow"
+                ") VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    job.id,
+                    job.prompt,
+                    job.status,
+                    job.created_at,
+                    job.task_prompt,
+                    job.mode,
+                    job.workflow,
+                ),
             )
         return job
 

@@ -72,3 +72,56 @@ def test_rejects_oversized_file(tmp_path: Path) -> None:
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Upload size limit exceeded."
+
+
+def test_ask_accepts_a_prompt_without_files(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+
+    response = client.post(
+        "/jobs",
+        auth=("luke", "secret"),
+        data={"prompt": "Give me three ideas", "mode": "ask", "workflow": ""},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    job = client.app.state.jobs.get(response.headers["location"].rsplit("/", 1)[-1])
+    assert job is not None
+    assert job.mode == "ask"
+    assert job.workflow == ""
+    assert "Answer the user's question directly" in job.task_prompt
+
+
+def test_analyse_rejects_a_missing_file(tmp_path: Path) -> None:
+    response = make_client(tmp_path).post(
+        "/jobs",
+        auth=("luke", "secret"),
+        data={"prompt": "Investigate this", "mode": "analyse", "workflow": ""},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Analyse requires at least one file."
+
+
+def test_workflow_persists_reviewed_instructions(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+
+    response = client.post(
+        "/jobs",
+        auth=("luke", "secret"),
+        data={
+            "prompt": "Focus on delivery risk",
+            "mode": "workflow",
+            "workflow": "extract-actions",
+        },
+        files={"files": ("notes.md", b"# Notes", "text/markdown")},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    job = client.app.state.jobs.get(response.headers["location"].rsplit("/", 1)[-1])
+    assert job is not None
+    assert job.mode == "workflow"
+    assert job.workflow == "extract-actions"
+    assert "owners, deadlines" in job.task_prompt
+    assert "Focus on delivery risk" in job.task_prompt
