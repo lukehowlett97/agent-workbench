@@ -121,7 +121,7 @@ def test_openclaw_executor_passes_api_key_only_to_subprocess(
     assert captured["env"]["NVIDIA_API_KEY"] == "secret-key"
     assert "--message" in captured["command"]
     assert f"agent:main:workbench:{job.id}" in captured["command"]
-    assert any("Read the supplied files" in part for part in captured["command"])
+    assert any("Respond helpfully and directly" in part for part in captured["command"])
     assert '"id": "test-model"' in captured["config"]
     assert '"maxTokens": 8192' in captured["config"]
     workspace = tmp_path / "jobs" / job.id
