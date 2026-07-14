@@ -25,7 +25,7 @@ dev = [
 
 [project.scripts]
 agent-workbench = "agent_workbench.main:run"
-agent-workbench-worker = "agent_workbench.worker:main"
+agent-workbench-worker = "agent_workbench.worker:main"\nagent-workbench-gateway = "agent_workbench.gateway:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/agent_workbench"]
