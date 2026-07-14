@@ -6,7 +6,12 @@ import subprocess
 from pathlib import Path
 
 from agent_workbench.config import Settings
-from agent_workbench.executor import (\n    ExecutionResult,\n    FixtureExecutor,\n    OpenClawExecutor,\n    OpenClawGatewayExecutor,\n)
+from agent_workbench.executor import (
+    ExecutionResult,
+    FixtureExecutor,
+    OpenClawExecutor,
+    OpenClawGatewayExecutor,
+)
 from agent_workbench.jobs import Job, JobRepository
 from agent_workbench.worker import Worker, build_executor
 
