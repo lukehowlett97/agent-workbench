@@ -233,7 +233,10 @@ class OpenClawGatewayExecutor:
 
     def execute(self, job: Job | Run, workspace: Path) -> ExecutionResult:
         """Run one persistent Gateway session for a job or workspace run."""
-        client_state = workspace / ".openclaw-client"
+        # A Gateway client must retain its paired device identity across runs.
+        # Workspace directories are intentionally per-run, so keep this private
+        # worker state beside the shared jobs/workspaces roots instead.
+        client_state = workspace.parent.parent / ".openclaw-worker-client"
         client_state.mkdir(parents=True, exist_ok=True)
         config_path = client_state / "openclaw.json"
         config_path.write_text(
