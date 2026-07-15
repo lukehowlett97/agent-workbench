@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 from pathlib import Path
 
 
@@ -32,6 +33,7 @@ def build_gateway_config(
 
     builder_tools = ["site_publish", "site_status", "site_read", "site_rollback"]
     builder_low_level_tools = ["workspace_list", "workspace_read", "workspace_write", "workspace_apply_patch", "git_create_branch", "git_diff", "git_commit", "run_build", "run_tests", "create_preview", "deploy_preview", "verify_preview"]
+    maintenance_tools = ["maintenance_status", "maintenance_capabilities", "maintenance_plan", "maintenance_execute", "maintenance_job_status", "maintenance_rollback"]
     unsafe_tools = ["exec", "process", "shell", "ssh", "read", "write", "edit", "apply_patch", "browser", "web_fetch", "web_search"]
     builder_non_plugin_tools = unsafe_tools + ["get_goal", "create_goal", "update_goal", "skill_workshop", "update_plan", "sessions_list", "sessions_history", "sessions_send", "sessions_spawn", "sessions_yield", "subagents", "session_status"]
     return {
@@ -68,12 +70,21 @@ def build_gateway_config(
                 "memorySearch": {"enabled": False},
             },
             "list": [
-                {"id": "main", "default": True, "tools": {"deny": builder_tools + builder_low_level_tools}},
-                {"id": "career", "tools": {"deny": builder_tools + builder_low_level_tools}},
-                {"id": "builder-agent", "workspace": str(workspace), "tools": {"alsoAllow": builder_tools, "deny": builder_non_plugin_tools + builder_low_level_tools}},
+                {"id": "main", "default": True, "tools": {"deny": builder_tools + builder_low_level_tools + maintenance_tools}},
+                {"id": "career", "tools": {"deny": builder_tools + builder_low_level_tools + maintenance_tools}},
+                {"id": "builder-agent", "workspace": str(workspace), "tools": {"alsoAllow": builder_tools, "deny": builder_non_plugin_tools + builder_low_level_tools + maintenance_tools}},
+                {"id": "maintenance-agent", "workspace": str(workspace / "maintenance"), "agentDir": "/state/agents/maintenance-agent/agent", "tools": {"alsoAllow": maintenance_tools, "deny": builder_non_plugin_tools + builder_tools + builder_low_level_tools}},
             ],
         },
         "tools": {"profile": "coding", "deny": unsafe_tools},
+        "skills": {"load": {"extraDirs": ["/opt/openclaw-builder-skill", "/opt/openclaw-maintenance-skill"]}},
+        "plugins": {
+            "entries": {
+                "openclaw-maintenance-tools": {"enabled": True, "config": {"serviceSecret": "${MAINTENANCE_SERVICE_SECRET}"}},
+            },
+            "load": {"paths": ["/opt/openclaw-builder-tools", "/opt/openclaw-maintenance-tools"]},
+            "allow": ["openclaw-builder-tools", "openclaw-maintenance-tools"],
+        },
     }
 
 
@@ -86,6 +97,22 @@ def load_existing_config(config_path: Path) -> dict[str, object]:
     except json.JSONDecodeError:
         return {}
     return config if isinstance(config, dict) else {}
+
+
+def provision_maintenance_agent(state_dir: Path) -> None:
+    """Seed the isolated maintenance agent directory without overwriting state."""
+    source = Path("/app/agent-assets/maintenance-agent")
+    target = state_dir / "agents" / "maintenance-agent" / "agent"
+    if not source.is_dir():
+        raise SystemExit("maintenance agent assets are missing from the Gateway image")
+    target.mkdir(parents=True, exist_ok=True)
+    for item in source.rglob("*"):
+        if not item.is_file():
+            continue
+        destination = target / item.relative_to(source)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if not destination.exists():
+            shutil.copyfile(item, destination)
 
 
 def main() -> None:
@@ -109,6 +136,7 @@ def main() -> None:
     state_dir.mkdir(parents=True, exist_ok=True)
     (state_dir / "home").mkdir(parents=True, exist_ok=True)
     (state_dir / "npm-cache").mkdir(parents=True, exist_ok=True)
+    provision_maintenance_agent(state_dir)
     workspace.mkdir(parents=True, exist_ok=True)
     config = merge_config(
         load_existing_config(config_path),

@@ -22,11 +22,15 @@ RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && npm install --global "openclaw@${OPENCLAW_VERSION}" \
     && openclaw --version
 
-COPY pyproject.toml README.md ./
-COPY src ./src
+COPY apps/agent-workbench/pyproject.toml apps/agent-workbench/README.md ./
+COPY apps/agent-workbench/src ./src
+COPY deploy/gateway ./deploy/gateway
+COPY deploy/maintenance/policy ./deploy/maintenance/policy
+COPY apps/agent-workbench/agent-assets ./agent-assets
 
 RUN python -m pip install --upgrade pip \
-    && python -m pip install .
+    && python -m pip install . \
+    && python /app/deploy/gateway/install-approved-dependencies.py
 
 USER workbench
 

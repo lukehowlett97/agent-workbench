@@ -34,7 +34,8 @@ services:
 
   gateway:
     build:
-      context: .
+      context: ../..
+      dockerfile: apps/agent-workbench/Dockerfile
       args:
         OPENCLAW_VERSION: "${OPENCLAW_VERSION:-2026.7.1}"
     command: ["agent-workbench-gateway"]
@@ -42,6 +43,7 @@ services:
       NVIDIA_API_KEY: "${NVIDIA_API_KEY:?Set NVIDIA_API_KEY}"
       OPENCLAW_GATEWAY_TOKEN: "${OPENCLAW_GATEWAY_TOKEN:?Set OPENCLAW_GATEWAY_TOKEN}"
       BUILDER_SERVICE_SECRET: "${BUILDER_SERVICE_SECRET:?Set BUILDER_SERVICE_SECRET}"
+      MAINTENANCE_SERVICE_SECRET: "${MAINTENANCE_SERVICE_SECRET:?Set MAINTENANCE_SERVICE_SECRET}"
       WORKBENCH_MODEL: "${WORKBENCH_MODEL:-nvidia/nemotron-3-super-120b-a12b}"
       WORKBENCH_DATA_DIR: /data
       OPENCLAW_STATE_DIR: /state
@@ -58,6 +60,8 @@ services:
       - openclaw-state:/state
       - /srv/projects/preview-deployment/apps/builder-tools:/opt/openclaw-builder-tools:ro
       - /srv/projects/preview-deployment/apps/builder-tools/skill:/opt/openclaw-builder-skill:ro
+      - /srv/projects/preview-deployment/apps/maintenance-tools:/opt/openclaw-maintenance-tools:ro
+      - /srv/projects/preview-deployment/openclaw/agents/maintenance-agent/skills/openclaw-maintenance:/opt/openclaw-maintenance-skill:ro
     networks:
       - default
       - preview-private
