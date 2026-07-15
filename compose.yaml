@@ -41,6 +41,7 @@ services:
     environment:
       NVIDIA_API_KEY: "${NVIDIA_API_KEY:?Set NVIDIA_API_KEY}"
       OPENCLAW_GATEWAY_TOKEN: "${OPENCLAW_GATEWAY_TOKEN:?Set OPENCLAW_GATEWAY_TOKEN}"
+      BUILDER_SERVICE_SECRET: "${BUILDER_SERVICE_SECRET:?Set BUILDER_SERVICE_SECRET}"
       WORKBENCH_MODEL: "${WORKBENCH_MODEL:-nvidia/nemotron-3-super-120b-a12b}"
       WORKBENCH_DATA_DIR: /data
       OPENCLAW_STATE_DIR: /state
@@ -55,6 +56,11 @@ services:
     volumes:
       - workbench-data:/data
       - openclaw-state:/state
+      - /srv/projects/preview-deployment/apps/builder-tools:/opt/openclaw-builder-tools:ro
+      - /srv/projects/preview-deployment/apps/builder-tools/skill:/opt/openclaw-builder-skill:ro
+    networks:
+      - default
+      - preview-private
     read_only: true
     tmpfs:
       - /tmp:size=512m,mode=1777,exec
@@ -107,3 +113,8 @@ services:
 volumes:
   workbench-data:
   openclaw-state:
+
+networks:
+  preview-private:
+    external: true
+    name: techlett-preview_preview-private

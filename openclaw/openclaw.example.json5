@@ -23,8 +23,33 @@
         enabled: false,
       },
     },
+    list: [
+      {
+        id: "main",
+        default: true,
+        tools: { deny: ["workspace_list", "workspace_read", "workspace_write", "workspace_apply_patch", "git_create_branch", "git_diff", "git_commit", "run_build", "run_tests", "create_preview", "deploy_preview", "verify_preview"] },
+      },
+      {
+        id: "career",
+        tools: { deny: ["workspace_list", "workspace_read", "workspace_write", "workspace_apply_patch", "git_create_branch", "git_diff", "git_commit", "run_build", "run_tests", "create_preview", "deploy_preview", "verify_preview"] },
+      },
+      {
+        id: "builder-agent",
+        model: "nvidia/nemotron-3-super-120b-a12b",
+        tools: { alsoAllow: ["workspace_list", "workspace_read", "workspace_write", "workspace_apply_patch", "git_create_branch", "git_diff", "git_commit", "run_build", "run_tests", "create_preview", "deploy_preview", "verify_preview"], deny: ["exec", "process", "shell", "ssh", "read", "write", "edit", "apply_patch", "browser", "web_fetch", "web_search", "get_goal", "create_goal", "update_goal", "skill_workshop", "update_plan", "sessions_list", "sessions_history", "sessions_send", "sessions_spawn", "sessions_yield", "subagents", "session_status"] },
+      },
+    ],
   },
   tools: {
-    profile: "coding",
+    profile: "minimal",
+    deny: ["exec", "process", "shell", "ssh", "browser", "web_fetch", "web_search", "read", "write", "edit", "apply_patch"],
+  },
+  plugins: {
+    entries: {
+      "openclaw-builder-tools": {
+        enabled: true,
+        config: { serviceSecret: "${BUILDER_SERVICE_SECRET}" },
+      },
+    },
   },
 }

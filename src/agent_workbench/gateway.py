@@ -30,6 +30,9 @@ def build_gateway_config(
     if provider != "nvidia" or not separator or not model_id:
         raise ValueError("Gateway models must use nvidia/<model-id>.")
 
+    builder_tools = ["workspace_list", "workspace_read", "workspace_write", "workspace_apply_patch", "git_create_branch", "git_diff", "git_commit", "run_build", "run_tests", "create_preview", "deploy_preview", "verify_preview"]
+    unsafe_tools = ["exec", "process", "shell", "ssh", "read", "write", "edit", "apply_patch", "browser", "web_fetch", "web_search"]
+    builder_non_plugin_tools = unsafe_tools + ["get_goal", "create_goal", "update_goal", "skill_workshop", "update_plan", "sessions_list", "sessions_history", "sessions_send", "sessions_spawn", "sessions_yield", "subagents", "session_status"]
     return {
         "gateway": {
             "mode": "local",
@@ -62,9 +65,14 @@ def build_gateway_config(
                 "models": {"nvidia/*": {}},
                 "timeoutSeconds": timeout_seconds,
                 "memorySearch": {"enabled": False},
-            }
+            },
+            "list": [
+                {"id": "main", "default": True, "tools": {"deny": builder_tools}},
+                {"id": "career", "tools": {"deny": builder_tools}},
+                {"id": "builder-agent", "workspace": str(workspace), "tools": {"alsoAllow": builder_tools, "deny": builder_non_plugin_tools}},
+            ],
         },
-        "tools": {"profile": "coding"},
+        "tools": {"profile": "coding", "deny": unsafe_tools},
     }
 
 
