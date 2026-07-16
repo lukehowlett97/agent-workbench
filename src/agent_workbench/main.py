@@ -67,11 +67,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         prompt: Annotated[str, Form(min_length=1, max_length=20_000)],
         mode: Annotated[str, Form()] = "ask",
         workflow: Annotated[str, Form()] = "",
-        files: Annotated[list[UploadFile] | None, File()] = None,
+        files: Annotated[list[UploadFile | str] | None, File()] = None,
     ) -> RedirectResponse:
         """Create a queued job and safely persist its uploads."""
         del username
-        uploads = [upload for upload in files or [] if upload.filename]
+        uploads = [
+            upload for upload in files or []
+            if isinstance(upload, UploadFile) and upload.filename
+        ]
         try:
             validate_submission(mode, workflow, len(uploads))
             task_prompt = build_task_prompt(mode, workflow, prompt)
@@ -99,12 +102,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         prompt: Annotated[str, Form(min_length=1, max_length=20_000)],
         mode: Annotated[str, Form()] = "ask",
         workflow: Annotated[str, Form()] = "",
-        files: Annotated[list[UploadFile] | None, File()] = None,
+        files: Annotated[list[UploadFile | str] | None, File()] = None,
         title: Annotated[str, Form(max_length=120)] = "",
     ) -> RedirectResponse:
         """Create a workspace, its first message, and queued first run."""
         del username
-        uploads = [upload for upload in files or [] if upload.filename]
+        uploads = [
+            upload for upload in files or []
+            if isinstance(upload, UploadFile) and upload.filename
+        ]
         try:
             validate_submission(mode, workflow, len(uploads))
             task_prompt = build_task_prompt(mode, workflow, prompt)

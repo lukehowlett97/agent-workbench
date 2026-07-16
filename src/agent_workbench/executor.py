@@ -317,8 +317,7 @@ class OpenClawGatewayExecutor:
             str(self.timeout_seconds),
             "--json",
         ]
-        if direct_chat:
-            command.extend(["--thinking", "off"])
+        command.extend(["--thinking", "off"])
 
         try:
             completed = subprocess.run(
