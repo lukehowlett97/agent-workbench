@@ -32,9 +32,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         redoc_url=None,
     )
     runtime_settings = settings or Settings.from_env()
-    repository = JobRepository(runtime_settings.data_dir / "workbench.sqlite3")
+    if runtime_settings.database_path is None:
+        raise ValueError("database_path must be explicitly configured")
+    repository = JobRepository(runtime_settings.database_path)
     repository.initialise()
-    workspaces = WorkspaceRepository(runtime_settings.data_dir / "workbench.sqlite3")
+    workspaces = WorkspaceRepository(runtime_settings.database_path)
     workspaces.initialise()
     application.state.settings = runtime_settings
     application.state.jobs = repository

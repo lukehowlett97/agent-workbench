@@ -19,6 +19,7 @@ def make_client(data_dir: Path) -> TestClient:
                 password="secret",
                 environment="test",
                 data_dir=data_dir,
+                database_path=data_dir / "workbench.sqlite3",
                 max_file_bytes=100,
                 max_job_bytes=150,
             )

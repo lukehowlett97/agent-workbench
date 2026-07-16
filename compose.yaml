@@ -9,6 +9,7 @@ services:
       WORKBENCH_EXECUTOR: "${WORKBENCH_EXECUTOR:-fixture}"
       WORKBENCH_MODEL: "${WORKBENCH_MODEL:-nvidia/nemotron-3-super-120b-a12b}"
       WORKBENCH_DATA_DIR: /data
+      WORKBENCH_DATABASE_PATH: /data/workbench.sqlite3
     ports:
       - "127.0.0.1:18090:8000"
     volumes:
@@ -45,6 +46,7 @@ services:
       BUILDER_SERVICE_SECRET: "${BUILDER_SERVICE_SECRET:?Set BUILDER_SERVICE_SECRET}"
       WORKBENCH_MODEL: "${WORKBENCH_MODEL:-nvidia/nemotron-3-super-120b-a12b}"
       WORKBENCH_DATA_DIR: /data
+      WORKBENCH_DATABASE_PATH: /data/workbench.sqlite3
       OPENCLAW_STATE_DIR: /state
       OPENCLAW_CONFIG_PATH: /state/openclaw.json
       HOME: /state/home
@@ -99,6 +101,7 @@ services:
       WORKBENCH_EXECUTOR: "${WORKBENCH_EXECUTOR:-fixture}"
       WORKBENCH_MODEL: "${WORKBENCH_MODEL:-nvidia/nemotron-3-super-120b-a12b}"
       WORKBENCH_DATA_DIR: /data
+      WORKBENCH_DATABASE_PATH: /data/workbench.sqlite3
       OPENCLAW_GATEWAY_URL: "${OPENCLAW_GATEWAY_URL:-ws://gateway:18789}"
       OPENCLAW_GATEWAY_TOKEN: "${OPENCLAW_GATEWAY_TOKEN:-}"
       OPENCLAW_GATEWAY_TIMEOUT_SECONDS: "${OPENCLAW_GATEWAY_TIMEOUT_SECONDS:-300}"

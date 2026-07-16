@@ -125,7 +125,9 @@ def main() -> int:
     args = parser.parse_args()
 
     settings = Settings.from_env()
-    repository = WorkspaceRepository(settings.data_dir / "workbench.sqlite3")
+    if settings.database_path is None:
+        raise ValueError("database_path must be explicitly configured")
+    repository = WorkspaceRepository(settings.database_path)
     repository.initialise()
     repository.recover_stale(timedelta(minutes=15))
     worker = WorkspaceWorker(
