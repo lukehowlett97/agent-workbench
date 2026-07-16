@@ -280,14 +280,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     return application
 
 
-app = create_app()
-
-
 def run() -> None:
     """Run the development server."""
     uvicorn.run(
-        "agent_workbench.main:app",
+        "agent_workbench.main:create_app",
         host="127.0.0.1",
         port=8000,
         reload=False,
+        factory=True,
     )

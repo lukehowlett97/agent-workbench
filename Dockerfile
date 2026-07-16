@@ -36,4 +36,4 @@ USER workbench
 
 EXPOSE 8000 18789
 
-CMD ["uvicorn", "agent_workbench.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "agent_workbench.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
