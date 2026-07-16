@@ -65,15 +65,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def submit_job(
         username: Annotated[str, Depends(require_user)],
         prompt: Annotated[str, Form(min_length=1, max_length=20_000)],
-        files: Annotated[list[UploadFile] | None, File()] = None,
+        mode: Annotated[str, Form()] = "ask",
+        workflow: Annotated[str, Form()] = "",
+        files: Annotated[list[UploadFile] | None, File(default=None)] = None,
     ) -> RedirectResponse:
         """Create a queued job and safely persist its uploads."""
         del username
-        job = repository.create(prompt.strip())
+        uploads = [upload for upload in files or [] if upload.filename]
+        try:
+            validate_submission(mode, workflow, len(uploads))
+            task_prompt = build_task_prompt(mode, workflow, prompt)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        job = repository.create(
+            prompt.strip(), task_prompt=task_prompt, mode=mode, workflow=workflow
+        )
         workspace = runtime_settings.data_dir / "jobs" / job.id
         try:
             await store_uploads(
-                [upload for upload in files or [] if upload.filename],
+                uploads,
                 workspace,
                 runtime_settings.max_file_bytes,
                 runtime_settings.max_job_bytes,
@@ -89,7 +99,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         prompt: Annotated[str, Form(min_length=1, max_length=20_000)],
         mode: Annotated[str, Form()] = "ask",
         workflow: Annotated[str, Form()] = "",
-        files: Annotated[list[UploadFile] | None, File()] = None,
+        files: Annotated[list[UploadFile] | None, File(default=None)] = None,
         title: Annotated[str, Form(max_length=120)] = "",
     ) -> RedirectResponse:
         """Create a workspace, its first message, and queued first run."""

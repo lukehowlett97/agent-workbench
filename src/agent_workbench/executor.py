@@ -344,7 +344,9 @@ class OpenClawGatewayExecutor:
             ) from exc
 
         report_path = output_dir / "report.md"
-        if direct_chat:
+        if report_path.is_file():
+            markdown = report_path.read_text(encoding="utf-8")
+        else:
             try:
                 response = json.loads(completed.stdout)
                 payloads = response["result"]["payloads"]
@@ -353,18 +355,11 @@ class OpenClawGatewayExecutor:
                 ).strip()
             except (json.JSONDecodeError, KeyError, TypeError) as exc:
                 raise RuntimeError(
-                    "OpenClaw Gateway completed without a readable chat response."
+                    "OpenClaw Gateway completed without a readable response or report."
                 ) from exc
             if not markdown:
-                raise RuntimeError("OpenClaw Gateway completed with an empty chat response.")
+                raise RuntimeError("OpenClaw Gateway completed with an empty response.")
             report_path.write_text(markdown, encoding="utf-8")
-        elif report_path.is_file():
-            markdown = report_path.read_text(encoding="utf-8")
-        else:
-            raise RuntimeError(
-                "OpenClaw Gateway completed without creating output/report.md. "
-                f"Client output: {completed.stdout.strip()[-400:]}"
-            )
 
         return ExecutionResult(
             markdown=markdown,
