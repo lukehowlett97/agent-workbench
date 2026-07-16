@@ -46,6 +46,34 @@ def test_worker_completes_claimed_job(tmp_path: Path) -> None:
     assert (tmp_path / "jobs" / job.id / "output" / "report.md").exists()
 
 
+def test_worker_executes_reviewed_prompt_and_preserves_raw_prompt(
+    tmp_path: Path,
+) -> None:
+    """The worker executes reviewed instructions while retaining the raw request."""
+    repository = JobRepository(tmp_path / "workbench.sqlite3")
+    repository.initialise()
+    job = repository.create(
+        "Summarise the files",
+        task_prompt="Answer directly using the supplied files.",
+        mode="ask",
+    )
+    workspace = tmp_path / "jobs" / job.id
+    (workspace / "input").mkdir(parents=True)
+    (workspace / "output").mkdir()
+    (workspace / "work").mkdir()
+
+    worker = Worker(repository, FixtureExecutor(), tmp_path / "jobs")
+    assert worker.run_once() is True
+
+    completed = repository.get(job.id)
+    assert completed is not None
+    assert completed.prompt == "Summarise the files"
+    assert completed.task_prompt == "Answer directly using the supplied files."
+    assert "Answer directly using the supplied files." in (
+        completed.result_markdown or ""
+    )
+
+
 def test_worker_records_safe_failure(tmp_path: Path) -> None:
     """Executor errors should fail the job without crashing the worker."""
 
@@ -134,6 +162,45 @@ def test_openclaw_executor_passes_api_key_only_to_subprocess(
     assert f'"workspace": "{workspace}"' in captured["config"]
 
 
+def test_openclaw_executor_uses_reviewed_prompt(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """The provider executor receives reviewed instructions, not raw form text."""
+    repository = JobRepository(tmp_path / "workbench.sqlite3")
+    repository.initialise()
+    job = repository.create(
+        "Raw user request",
+        task_prompt="Reviewed execution instructions",
+        mode="ask",
+    )
+    workspace = tmp_path / "jobs" / job.id
+    (workspace / "input").mkdir(parents=True)
+    (workspace / "output").mkdir()
+    (workspace / "work").mkdir()
+    captured: dict[str, object] = {}
+
+    def fake_run(command, **kwargs):
+        captured["command"] = command
+        (workspace / "output" / "report.md").write_text(
+            "# OpenClaw report", encoding="utf-8"
+        )
+
+        class Completed:
+            stdout = ""
+
+        return Completed()
+
+    monkeypatch.setattr("agent_workbench.executor.subprocess.run", fake_run)
+    OpenClawExecutor("secret-key", "nvidia/test-model").execute(job, workspace)
+
+    task = next(
+        part for index, part in enumerate(captured["command"])
+        if captured["command"][index - 1] == "--message"
+    )
+    assert "Reviewed execution instructions" in task
+    assert "Raw user request" not in task
+
+
 def test_openclaw_executor_redacts_key_in_process_errors(
     tmp_path: Path, monkeypatch
 ) -> None:
@@ -193,6 +260,48 @@ def test_gateway_executor_uses_remote_gateway_without_provider_key(
     assert "NVIDIA_API_KEY" not in captured["env"]
     assert '"url": "ws://gateway:18789"' in captured["config"]
     assert '"token": "gateway-secret"' in captured["config"]
+
+
+def test_gateway_executor_uses_reviewed_prompt(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """The Gateway executor receives the persisted reviewed prompt."""
+    repository = JobRepository(tmp_path / "workbench.sqlite3")
+    repository.initialise()
+    job = repository.create(
+        "Raw user request",
+        task_prompt="Reviewed execution instructions",
+        mode="ask",
+    )
+    workspace = tmp_path / "jobs" / job.id
+    (workspace / "input").mkdir(parents=True)
+    captured: dict[str, object] = {}
+
+    def fake_run(command, **kwargs):
+        captured["command"] = command
+        task_path = Path(
+            command[command.index("--message-file") + 1]
+        )
+        task_path.parent.mkdir(parents=True, exist_ok=True)
+        (workspace / "output" / "report.md").parent.mkdir(parents=True, exist_ok=True)
+        (workspace / "output" / "report.md").write_text(
+            "# Gateway report", encoding="utf-8"
+        )
+
+        class Completed:
+            stdout = ""
+
+        return Completed()
+
+    monkeypatch.setattr("agent_workbench.executor.subprocess.run", fake_run)
+    OpenClawGatewayExecutor(
+        "ws://gateway:18789", "gateway-secret", "nvidia/test-model"
+    ).execute(job, workspace)
+
+    task_path = Path(captured["command"][captured["command"].index("--message-file") + 1])
+    task = task_path.read_text(encoding="utf-8")
+    assert "Reviewed execution instructions" in task
+    assert "Raw user request" not in task
 
 
 def test_gateway_executor_redacts_token_in_process_errors(

@@ -30,6 +30,13 @@ class Executor(Protocol):
         ...
 
 
+def execution_prompt(job: Job | Run) -> str:
+    """Return the reviewed runtime prompt without losing the raw user prompt."""
+    if isinstance(job, Job) and job.task_prompt:
+        return job.task_prompt
+    return job.prompt
+
+
 class FixtureExecutor:
     """Deterministic executor for development and automated tests."""
 
@@ -38,7 +45,7 @@ class FixtureExecutor:
         files = sorted(path.name for path in (workspace / "input").iterdir())
         markdown = (
             f"# Analysis job {job.id}\n\n"
-            f"Prompt: {job.prompt}\n\n"
+            f"Prompt: {execution_prompt(job)}\n\n"
             "## Input files\n\n"
             + "\n".join(f"- {name}" for name in files)
             + "\n"
@@ -143,7 +150,7 @@ class OpenClawExecutor:
             "# Agent Workbench task\n\n"
             "Respond helpfully and directly to the user's request. Write the final "
             f"Markdown response to {output_dir / 'report.md'}.\n\n"
-            f"User prompt:\n{job.prompt}\n\n"
+            f"User prompt:\n{execution_prompt(job)}\n\n"
             + file_context,
             encoding="utf-8",
         )
@@ -280,7 +287,7 @@ class OpenClawGatewayExecutor:
                 "Answer the user's request directly and concisely. Do not use tools, "
                 "inspect files, or describe your process. Return only the answer in "
                 "Markdown.\n\n"
-                f"User prompt:\n{job.prompt}\n"
+                f"User prompt:\n{execution_prompt(job)}\n"
             )
         else:
             task = (
@@ -288,7 +295,7 @@ class OpenClawGatewayExecutor:
                 "Respond helpfully and directly to the user's request. Your assigned "
                 f"workspace is {workspace}; do not inspect other workspaces. Write the "
                 f"final Markdown response to {output_dir / 'report.md'}.\n\n"
-                f"User prompt:\n{job.prompt}\n\n"
+                f"User prompt:\n{execution_prompt(job)}\n\n"
                 + file_context
             )
         task_path.write_text(task, encoding="utf-8")
