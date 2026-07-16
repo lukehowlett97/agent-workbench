@@ -28,6 +28,28 @@ def test_gateway_config_keeps_secrets_in_environment(tmp_path: Path) -> None:
     assert defaults["workspace"] == str(tmp_path / "jobs")
     assert defaults["model"]["primary"] == "nvidia/test-model"
     assert defaults["timeoutSeconds"] == 180
+    assert (
+        config["plugins"]["entries"]["openclaw-maintenance-tools"]["config"][
+            "serviceSecret"
+        ]
+        == "${MAINTENANCE_SERVICE_SECRET}"
+    )
+
+
+def test_gateway_config_resolves_maintenance_secret() -> None:
+    config = build_gateway_config(
+        model="nvidia/test-model",
+        workspace=Path("/data/jobs"),
+        timeout_seconds=180,
+        maintenance_service_secret="s" * 64,
+    )
+
+    assert (
+        config["plugins"]["entries"]["openclaw-maintenance-tools"]["config"][
+            "serviceSecret"
+        ]
+        == "s" * 64
+    )
 
 
 @pytest.mark.parametrize("model", ["", "test-model", "openai/test-model", "nvidia/"])

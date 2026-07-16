@@ -25,8 +25,9 @@ def build_gateway_config(
     model: str,
     workspace: Path,
     timeout_seconds: int,
+    maintenance_service_secret: str | None = None,
 ) -> dict[str, object]:
-    """Build the pinned Gateway configuration without embedding secrets."""
+    """Build the pinned Gateway configuration with an optional runtime secret."""
     provider, separator, model_id = model.partition("/")
     if provider != "nvidia" or not separator or not model_id:
         raise ValueError("Gateway models must use nvidia/<model-id>.")
@@ -34,6 +35,11 @@ def build_gateway_config(
     builder_tools = ["site_publish", "site_status", "site_read", "site_rollback"]
     builder_low_level_tools = ["workspace_list", "workspace_read", "workspace_write", "workspace_apply_patch", "git_create_branch", "git_diff", "git_commit", "run_build", "run_tests", "create_preview", "deploy_preview", "verify_preview"]
     maintenance_tools = ["maintenance_status", "maintenance_capabilities", "maintenance_plan", "maintenance_execute", "maintenance_job_status", "maintenance_rollback"]
+    resolved_maintenance_secret = (
+        maintenance_service_secret
+        if maintenance_service_secret is not None
+        else "${MAINTENANCE_SERVICE_SECRET}"
+    )
     unsafe_tools = ["exec", "process", "shell", "ssh", "read", "write", "edit", "apply_patch", "browser", "web_fetch", "web_search"]
     builder_non_plugin_tools = unsafe_tools + ["get_goal", "create_goal", "update_goal", "skill_workshop", "update_plan", "sessions_list", "sessions_history", "sessions_send", "sessions_spawn", "sessions_yield", "subagents", "session_status"]
     return {
@@ -80,7 +86,7 @@ def build_gateway_config(
         "skills": {"load": {"extraDirs": ["/opt/openclaw-builder-skill", "/opt/openclaw-maintenance-skill"]}},
         "plugins": {
             "entries": {
-                "openclaw-maintenance-tools": {"enabled": True, "config": {"serviceSecret": "${MAINTENANCE_SERVICE_SECRET}"}},
+                "openclaw-maintenance-tools": {"enabled": True, "config": {"serviceSecret": resolved_maintenance_secret}},
             },
             "load": {"paths": ["/opt/openclaw-builder-tools", "/opt/openclaw-maintenance-tools"]},
             "allow": ["openclaw-builder-tools", "openclaw-maintenance-tools"],
@@ -132,6 +138,9 @@ def main() -> None:
         "nvidia/nemotron-3-super-120b-a12b",
     )
     timeout_seconds = int(os.getenv("OPENCLAW_GATEWAY_TIMEOUT_SECONDS", "300"))
+    maintenance_service_secret = os.getenv("MAINTENANCE_SERVICE_SECRET", "")
+    if len(maintenance_service_secret) < 32:
+        raise SystemExit("MAINTENANCE_SERVICE_SECRET is required by the Gateway.")
 
     state_dir.mkdir(parents=True, exist_ok=True)
     (state_dir / "home").mkdir(parents=True, exist_ok=True)
@@ -144,12 +153,14 @@ def main() -> None:
             model=model,
             workspace=workspace,
             timeout_seconds=timeout_seconds,
+            maintenance_service_secret=maintenance_service_secret,
         ),
     )
     config_path.write_text(
         json.dumps(config, indent=2) + "\n",
         encoding="utf-8",
     )
+    config_path.chmod(0o600)
 
     os.environ["OPENCLAW_STATE_DIR"] = str(state_dir)
     os.environ["OPENCLAW_CONFIG_PATH"] = str(config_path)
