@@ -67,7 +67,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         prompt: Annotated[str, Form(min_length=1, max_length=20_000)],
         mode: Annotated[str, Form()] = "ask",
         workflow: Annotated[str, Form()] = "",
-        files: Annotated[list[UploadFile] | None, File(default=None)] = None,
+        files: Annotated[list[UploadFile] | None, File()] = None,
     ) -> RedirectResponse:
         """Create a queued job and safely persist its uploads."""
         del username
@@ -99,7 +99,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         prompt: Annotated[str, Form(min_length=1, max_length=20_000)],
         mode: Annotated[str, Form()] = "ask",
         workflow: Annotated[str, Form()] = "",
-        files: Annotated[list[UploadFile] | None, File(default=None)] = None,
+        files: Annotated[list[UploadFile] | None, File()] = None,
         title: Annotated[str, Form(max_length=120)] = "",
     ) -> RedirectResponse:
         """Create a workspace, its first message, and queued first run."""
