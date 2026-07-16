@@ -10,6 +10,7 @@ import uvicorn
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from starlette.datastructures import UploadFile as StarletteUploadFile
 
 from agent_workbench.auth import require_user
 from agent_workbench.config import Settings
@@ -73,7 +74,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         del username
         uploads = [
             upload for upload in files or []
-            if isinstance(upload, UploadFile) and upload.filename
+            if isinstance(upload, StarletteUploadFile) and upload.filename
         ]
         try:
             validate_submission(mode, workflow, len(uploads))
@@ -109,7 +110,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         del username
         uploads = [
             upload for upload in files or []
-            if isinstance(upload, UploadFile) and upload.filename
+            if isinstance(upload, StarletteUploadFile) and upload.filename
         ]
         try:
             validate_submission(mode, workflow, len(uploads))
