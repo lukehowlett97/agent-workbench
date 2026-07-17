@@ -58,6 +58,9 @@ def build_gateway_config(
     unsafe_tools = ["exec", "process", "shell", "ssh", "read", "write", "edit", "apply_patch", "browser", "web_fetch", "web_search"]
     builder_non_plugin_tools = unsafe_tools + ["get_goal", "create_goal", "update_goal", "skill_workshop", "update_plan", "sessions_list", "sessions_history", "sessions_send", "sessions_spawn", "sessions_yield", "subagents", "session_status"]
     config: dict[str, object] = {
+        "meta": {
+            "lastTouchedVersion": os.getenv("OPENCLAW_VERSION", "2026.7.1"),
+        },
         "gateway": {
             "mode": "local",
             "bind": "lan",
