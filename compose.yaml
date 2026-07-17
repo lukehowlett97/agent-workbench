@@ -9,6 +9,7 @@ services:
       WORKBENCH_EXECUTOR: "${WORKBENCH_EXECUTOR:-fixture}"
       WORKBENCH_MODEL: "${WORKBENCH_MODEL:-nvidia/nemotron-3-super-120b-a12b}"
       WORKBENCH_DATA_DIR: /data
+      WORKBENCH_DATABASE_PATH: /data/workbench.sqlite3
     ports:
       - "127.0.0.1:18090:8000"
     volumes:
@@ -34,22 +35,49 @@ services:
 
   gateway:
     build:
-      context: .
+      context: ../..
+      dockerfile: apps/agent-workbench/Dockerfile
       args:
-        OPENCLAW_VERSION: "${OPENCLAW_VERSION:-2026.6.11}"
+        OPENCLAW_VERSION: "${OPENCLAW_VERSION:-2026.7.1}"
     command: ["agent-workbench-gateway"]
     environment:
       NVIDIA_API_KEY: "${NVIDIA_API_KEY:?Set NVIDIA_API_KEY}"
       OPENCLAW_GATEWAY_TOKEN: "${OPENCLAW_GATEWAY_TOKEN:?Set OPENCLAW_GATEWAY_TOKEN}"
+      BUILDER_SERVICE_SECRET: "${BUILDER_SERVICE_SECRET:?Set BUILDER_SERVICE_SECRET}"
       WORKBENCH_MODEL: "${WORKBENCH_MODEL:-nvidia/nemotron-3-super-120b-a12b}"
       WORKBENCH_DATA_DIR: /data
+      WORKBENCH_DATABASE_PATH: /data/workbench.sqlite3
       OPENCLAW_STATE_DIR: /state
       OPENCLAW_CONFIG_PATH: /state/openclaw.json
-      OPENCLAW_GATEWAY_WORKSPACE: /data/jobs
+      HOME: /state/home
+      NPM_CONFIG_CACHE: /state/npm-cache
+      OPENCLAW_GATEWAY_WORKSPACE: /data/gateway-workspace
       OPENCLAW_GATEWAY_TIMEOUT_SECONDS: "${OPENCLAW_GATEWAY_TIMEOUT_SECONDS:-300}"
+      GOG_HOME: /google
+      GOG_KEYRING_BACKEND: file
+      GOG_KEYRING_PASSWORD: "${GOG_KEYRING_PASSWORD:-}"
+      GOG_ACCOUNT: "${GOOGLE_ACCOUNT:-}"
+    env_file:
+      - /etc/techlett-maintenance/gateway.env
+    ports:
+      # Native OpenClaw Control UI; reach it through an SSH tunnel only.
+      - "127.0.0.1:18789:18789"
     volumes:
       - workbench-data:/data
       - openclaw-state:/state
+      - google-workspace-state:/google
+      - /srv/projects/preview-deployment/apps/builder-tools:/opt/openclaw-builder-tools:ro
+      - /srv/projects/preview-deployment/apps/builder-tools/skill:/opt/openclaw-builder-skill:ro
+      - /srv/projects/preview-deployment/apps/maintenance-tools:/opt/openclaw-maintenance-tools:ro
+      - /srv/projects/preview-deployment/apps/capability-tools:/opt/openclaw-capability-tools:ro
+      - /srv/projects/preview-deployment/apps/capability-ui:/opt/openclaw-capability-ui:ro
+      - /srv/projects/preview-deployment/openclaw/agents/maintenance-agent/skills/openclaw-maintenance:/opt/openclaw-maintenance-skill:ro
+      - /srv/projects/preview-deployment/apps/agent-workbench/agent-assets/capability-agent/skills/capability-management:/opt/openclaw-capability-skill:ro
+    networks:
+      - default
+      - preview-private
+      - maintenance-private
+      - capability-private
     read_only: true
     tmpfs:
       - /tmp:size=512m,mode=1777,exec
@@ -73,7 +101,7 @@ services:
     build:
       context: .
       args:
-        OPENCLAW_VERSION: "${OPENCLAW_VERSION:-2026.6.11}"
+        OPENCLAW_VERSION: "${OPENCLAW_VERSION:-2026.7.1}"
     command: ["agent-workbench-worker"]
     environment:
       WORKBENCH_USERNAME: "${WORKBENCH_USERNAME:?Set WORKBENCH_USERNAME}"
@@ -82,6 +110,7 @@ services:
       WORKBENCH_EXECUTOR: "${WORKBENCH_EXECUTOR:-fixture}"
       WORKBENCH_MODEL: "${WORKBENCH_MODEL:-nvidia/nemotron-3-super-120b-a12b}"
       WORKBENCH_DATA_DIR: /data
+      WORKBENCH_DATABASE_PATH: /data/workbench.sqlite3
       OPENCLAW_GATEWAY_URL: "${OPENCLAW_GATEWAY_URL:-ws://gateway:18789}"
       OPENCLAW_GATEWAY_TOKEN: "${OPENCLAW_GATEWAY_TOKEN:-}"
       OPENCLAW_GATEWAY_TIMEOUT_SECONDS: "${OPENCLAW_GATEWAY_TIMEOUT_SECONDS:-300}"
@@ -102,3 +131,15 @@ services:
 volumes:
   workbench-data:
   openclaw-state:
+  google-workspace-state:
+
+networks:
+  preview-private:
+    external: true
+    name: techlett-preview_preview-private
+  maintenance-private:
+    external: true
+    name: techlett-maintenance
+  capability-private:
+    external: true
+    name: techlett-capability

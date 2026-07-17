@@ -5,131 +5,66 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Agent Workbench</title>
   <style>
-    :root { color-scheme:dark; font-family:Inter,system-ui,sans-serif; background:#090d13; color:#edf2f8; --panel:#111720; --line:#2b3747; --accent:#73daca; --purple:#d2a6ff }
-    * { box-sizing:border-box } body { margin:0; padding:2rem; background:radial-gradient(circle at top left,#18344a,transparent 38rem),#090d13 }
-    main { width:min(76rem,100%); margin:auto } header { margin-bottom:2rem } h1 { font-size:clamp(2.8rem,7vw,5.5rem); margin:.4rem 0; letter-spacing:-.055em }
-    h2 { margin-top:0 } .muted { color:#9eabba } .grid { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(18rem,.7fr); gap:1.5rem }
-    section { padding:1.6rem; border:1px solid var(--line); border-radius:1.2rem; background:#111720e6 }
-    .modes { display:grid; grid-template-columns:repeat(3,1fr); gap:.7rem; margin-bottom:1.5rem }
-    .mode { position:relative; display:block; padding:1rem; border:1px solid #35445a; border-radius:.8rem; background:#0b1018; cursor:pointer }
-    .mode input { position:absolute; opacity:0; pointer-events:none } .mode strong { display:block; margin-bottom:.25rem }
-    .mode span { display:block; color:#9eabba; font-size:.85rem; line-height:1.35 }
-    .mode:has(input:checked) { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); background:#102027 }
-    label.field { display:block; margin-bottom:.5rem; font-weight:650 }
-    textarea,input[type=file],select { width:100%; margin-bottom:1.2rem; padding:.9rem; color:inherit; background:#0b1018; border:1px solid #35445a; border-radius:.7rem }
-    textarea { min-height:11rem; resize:vertical } select:disabled { opacity:.5 }
-    button { padding:.85rem 1.2rem; border:0; border-radius:.7rem; background:var(--accent); color:#07110f; font-weight:750; cursor:pointer }
-    ol { padding-left:1.2rem } li { margin-bottom:1rem } a { color:var(--accent) }
-    .status,.eyebrow { color:var(--purple); font-size:.78rem; text-transform:uppercase; letter-spacing:.04em }
-    .job-meta { display:flex; gap:.5rem; margin-top:.25rem; align-items:center; flex-wrap:wrap }
-    .pill { padding:.18rem .45rem; border:1px solid #435269; border-radius:99rem; color:#b8c4d2; font-size:.72rem; text-transform:capitalize }
-    [hidden] { display:none !important }
-    @media(max-width:760px){ .grid { grid-template-columns:1fr } .modes { grid-template-columns:1fr } body { padding:1rem } }
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; background:#0b0e14; color:#edf2f8 }
+    * { box-sizing:border-box } body { margin:0; padding:2rem; background:radial-gradient(circle at top left,#18344a,transparent 38rem),#0b0e14 }
+    main { width:min(70rem,100%); margin:auto } header { margin-bottom:2rem } h1 { font-size:clamp(2.5rem,7vw,5rem); margin:.4rem 0; letter-spacing:-.05em }
+    .muted { color:#9eabba } .grid { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(18rem,.8fr); gap:1.5rem }
+    section { padding:1.5rem; border:1px solid #2b3747; border-radius:1.2rem; background:#111720e6 }
+    label { display:block; margin-bottom:.5rem; font-weight:650 } textarea,input { width:100%; margin-bottom:1.2rem; padding:.9rem; color:inherit; background:#0b1018; border:1px solid #35445a; border-radius:.7rem }
+    textarea { min-height:13rem; resize:vertical } button { padding:.85rem 1.2rem; border:0; border-radius:.7rem; background:#73daca; color:#07110f; font-weight:750; cursor:pointer }
+    ol { padding-left:1.2rem } li { margin-bottom:1rem } a { color:#73daca } .status { color:#d2a6ff; font-size:.8rem; text-transform:uppercase }
+    @media(max-width:760px){ .grid { grid-template-columns:1fr } body { padding:1rem } }
   </style>
 </head>
 <body>
 <main>
   <header>
-    <div class="eyebrow">Private · {{ environment }}</div>
+    <div class="status">Private · {{ environment }}</div>
     <h1>Agent Workbench</h1>
-    <div class="muted">Ask something, investigate files, or run a repeatable workflow.</div>
-    <div class="muted" style="margin-top:.4rem;font-size:.85rem">Signed in as {{ username }}</div>
+    <div class="muted">Signed in as {{ username }}</div>
   </header>
   <div class="grid">
     <section>
-      <form action="/jobs" method="post" enctype="multipart/form-data" id="job-form">
-        <fieldset style="border:0;padding:0;margin:0">
-          <legend class="field" style="margin-bottom:.7rem;font-weight:650">Choose how to work</legend>
-          <div class="modes">
-            <label class="mode">
-              <input type="radio" name="mode" value="ask" checked>
-              <strong>Ask</strong>
-              <span>Quick answers. Files are optional.</span>
-            </label>
-            <label class="mode">
-              <input type="radio" name="mode" value="analyse">
-              <strong>Analyse</strong>
-              <span>Investigate files with your own instructions.</span>
-            </label>
-            <label class="mode">
-              <input type="radio" name="mode" value="workflow">
-              <strong>Workflow</strong>
-              <span>Run a reusable, structured process.</span>
-            </label>
-          </div>
-        </fieldset>
-
-        <div id="workflow-field" hidden>
-          <label class="field" for="workflow">Workflow</label>
-          <select id="workflow" name="workflow" disabled>
-            <option value="">Choose a workflow</option>
-            {% for workflow in workflows %}
-            <option value="{{ workflow.id }}">{{ workflow.name }} — {{ workflow.description }}</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <label class="field" for="prompt" id="prompt-label">What would you like to ask?</label>
-        <textarea id="prompt" name="prompt" maxlength="20000" required placeholder="Ask a question or describe the outcome you want."></textarea>
-
-        <label class="field" for="files">Files <span class="muted" id="file-hint">(optional)</span></label>
+      <h2>New workspace</h2>
+      <form action="/workspaces" method="post" enctype="multipart/form-data">
+        <label for="title">Workspace title</label>
+        <input id="title" name="title" maxlength="120" placeholder="Dataset exploration">
+        <label for="prompt">What should the agent do?</label>
+        <textarea id="prompt" name="prompt" maxlength="20000" required></textarea>
+        <label for="mode">Mode</label>
+        <select id="mode" name="mode">
+          <option value="ask">Ask — answer a prompt; files optional</option>
+          <option value="analyse">Analyse — investigate uploaded files</option>
+          <option value="workflow">Workflow — use a reviewed file workflow</option>
+        </select>
+        <label for="workflow">Workflow <span class="muted">(Workflow mode only)</span></label>
+        <select id="workflow" name="workflow">
+          <option value="">Select a workflow</option>
+          {% for workflow in workflows %}
+          <option value="{{ workflow.id }}">{{ workflow.name }} — {{ workflow.description }}</option>
+          {% endfor %}
+        </select>
+        <label for="files">Files <span class="muted">(optional)</span></label>
         <input id="files" name="files" type="file" accept=".csv,.json,.md,.pdf,.txt" multiple>
-
-        <button type="submit" id="submit-label">Ask agent</button>
+        <button type="submit">Create workspace</button>
       </form>
     </section>
     <section>
-      <h2>Recent work</h2>
-      {% if jobs %}
+      <h2>Workspaces</h2>
+      {% if workspaces %}
       <ol>
-        {% for job in jobs %}
+        {% for workspace in workspaces %}
         <li>
-          <a href="/jobs/{{ job.id }}">{{ job.prompt[:70] }}</a>
-          <div class="job-meta">
-            <span class="status">{{ job.status }}</span>
-            <span class="pill">{{ job.mode }}</span>
-            {% if job.workflow %}<span class="pill">{{ job.workflow|replace("-", " ") }}</span>{% endif %}
-          </div>
+          <a href="/workspaces/{{ workspace.id }}">{{ workspace.title }}</a>
+          <div class="status">{{ workspace.model }}</div>
         </li>
         {% endfor %}
       </ol>
       {% else %}
-      <p class="muted">No work submitted yet.</p>
+      <p class="muted">No active workspaces yet.</p>
       {% endif %}
     </section>
   </div>
 </main>
-<script>
-  const form = document.querySelector("#job-form");
-  const workflowField = document.querySelector("#workflow-field");
-  const workflow = document.querySelector("#workflow");
-  const files = document.querySelector("#files");
-  const fileHint = document.querySelector("#file-hint");
-  const promptLabel = document.querySelector("#prompt-label");
-  const prompt = document.querySelector("#prompt");
-  const submitLabel = document.querySelector("#submit-label");
-
-  function updateMode() {
-    const mode = form.elements.mode.value;
-    const isWorkflow = mode === "workflow";
-    workflowField.hidden = !isWorkflow;
-    workflow.disabled = !isWorkflow;
-    workflow.required = isWorkflow;
-    files.required = mode !== "ask";
-    fileHint.textContent = mode === "ask" ? "(optional)" : "(required)";
-
-    const copy = {
-      ask: ["What would you like to ask?", "Ask a question or describe the outcome you want.", "Ask agent"],
-      analyse: ["What should the agent investigate?", "Describe the questions to answer and what a useful report looks like.", "Queue analysis"],
-      workflow: ["Any context or emphasis?", "Add context, priorities, exclusions, or the decision this should support.", "Run workflow"]
-    };
-    [promptLabel.textContent, prompt.placeholder, submitLabel.textContent] = copy[mode];
-  }
-
-  form.querySelectorAll('input[name="mode"]').forEach((input) => {
-    input.addEventListener("change", updateMode);
-  });
-  updateMode();
-</script>
 </body>
 </html>

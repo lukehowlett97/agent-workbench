@@ -85,7 +85,10 @@ Alternatively:
 make compose-up
 ```
 
-The Compose service listens only on <http://127.0.0.1:18090>.
+The Agent Workbench listens only on <http://127.0.0.1:18090>. The same
+deployment also exposes OpenClaw's native Control UI on VPS loopback at
+<http://127.0.0.1:18789>; access both through SSH tunnels. See
+[the native Control UI guide](docs/native-control-ui.md).
 
 ## Work modes
 

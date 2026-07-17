@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-OPENCLAW_VERSION="2026.6.11"
+OPENCLAW_VERSION="2026.7.1"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RUN_ROOT="${RUN_ROOT:-${ROOT_DIR}/.stage0}"
 WORKSPACE="${RUN_ROOT}/workspace"

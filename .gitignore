@@ -14,9 +14,15 @@ venv/
 
 # Application data
 data/
+.stage0/
 *.db
 *.sqlite
 *.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+.coverage
+coverage.xml
+htmlcov/
 
 # Editors and operating systems
 .vscode/

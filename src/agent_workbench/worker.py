@@ -6,6 +6,7 @@ import argparse
 import time
 from datetime import timedelta
 from pathlib import Path
+from time import monotonic
 
 from agent_workbench.config import Settings
 from agent_workbench.executor import (
@@ -15,6 +16,7 @@ from agent_workbench.executor import (
     OpenClawGatewayExecutor,
 )
 from agent_workbench.jobs import JobRepository
+from agent_workbench.workspaces import WorkspaceRepository
 
 
 class Worker:
@@ -50,6 +52,48 @@ class Worker:
         return True
 
 
+class WorkspaceWorker:
+    """Execute persistent workspace runs while retaining their OpenClaw session."""
+
+    def __init__(
+        self,
+        repository: WorkspaceRepository,
+        executor: Executor,
+        workspaces_dir: Path,
+    ) -> None:
+        self.repository = repository
+        self.executor = executor
+        self.workspaces_dir = workspaces_dir
+
+    def run_once(self) -> bool:
+        run = self.repository.claim_next_run()
+        if run is None:
+            return False
+        started = monotonic()
+        try:
+            result = self.executor.execute(run, self.workspaces_dir / run.workspace_id)
+        except Exception as exc:
+            self.repository.fail_run(
+                run,
+                f"{type(exc).__name__}: {exc}",
+                int((monotonic() - started) * 1000),
+            )
+        else:
+            self.repository.complete_run(
+                run,
+                result.markdown,
+                result.executor,
+                result.model,
+                int((monotonic() - started) * 1000),
+            )
+            self.repository.inventory_output(
+                run.workspace_id,
+                run.id,
+                self.workspaces_dir / run.workspace_id / "output" / run.id,
+            )
+        return True
+
+
 def build_executor(settings: Settings) -> Executor:
     """Build only the executor selected by the worker environment."""
     if settings.executor == "fixture":
@@ -81,10 +125,14 @@ def main() -> int:
     args = parser.parse_args()
 
     settings = Settings.from_env()
-    repository = JobRepository(settings.data_dir / "workbench.sqlite3")
+    if settings.database_path is None:
+        raise ValueError("database_path must be explicitly configured")
+    repository = WorkspaceRepository(settings.database_path)
     repository.initialise()
     repository.recover_stale(timedelta(minutes=15))
-    worker = Worker(repository, build_executor(settings), settings.data_dir / "jobs")
+    worker = WorkspaceWorker(
+        repository, build_executor(settings), settings.data_dir / "workspaces"
+    )
 
     if args.once:
         worker.run_once()
