@@ -15,7 +15,7 @@ RUN apt-get update \
     && cd /src/gogcli \
     && git rev-parse HEAD | grep -Fx "${GOGCLI_COMMIT}" \
     && mkdir -p /out \
-    && go run ./cmd/bake-safety-profile /tmp/techlett-google-readonly.yaml /tmp/safety_profile_baked_gen.go \
+    && go run ./cmd/bake-safety-profile /tmp/techlett-google-readonly.yaml internal/cmd/baked_safety_profile_gen.go \
     && go build -tags safety_profile -o /out/gog-safe ./cmd/gog
 
 FROM python:3.12-slim AS runtime
