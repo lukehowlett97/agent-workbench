@@ -36,6 +36,12 @@ def build_gateway_config(
     builder_low_level_tools = ["workspace_list", "workspace_read", "workspace_write", "workspace_apply_patch", "git_create_branch", "git_diff", "git_commit", "run_build", "run_tests", "create_preview", "deploy_preview", "verify_preview"]
     maintenance_tools = ["maintenance_status", "maintenance_capabilities", "maintenance_plan", "maintenance_execute", "maintenance_apply", "maintenance_job_status", "maintenance_rollback"]
     capability_tools = ["capability_catalog", "capability_run", "capability_install", "capability_create", "capability_update", "capability_remove", "capability_status", "capability_rollback", "capability_set_mode"]
+    google_workspace_tools = [
+        "calendar_events",
+        "gmail_get_message",
+        "gmail_get_thread",
+        "gmail_search",
+    ]
     resolved_maintenance_secret = (
         maintenance_service_secret
         if maintenance_service_secret is not None
@@ -79,20 +85,41 @@ def build_gateway_config(
             "list": [
                 {"id": "main", "default": True, "tools": {"alsoAllow": ["capability_catalog", "capability_run"], "deny": builder_tools + builder_low_level_tools + maintenance_tools + capability_tools[2:]}},
                 {"id": "career", "tools": {"alsoAllow": ["capability_catalog", "capability_run"], "deny": builder_tools + builder_low_level_tools + maintenance_tools + capability_tools[2:]}},
-                {"id": "builder-agent", "workspace": str(workspace), "tools": {"alsoAllow": builder_tools + ["capability_catalog", "capability_run"], "deny": builder_non_plugin_tools + builder_low_level_tools + maintenance_tools + capability_tools[2:]}},
-                {"id": "maintenance-agent", "workspace": str(workspace / "maintenance"), "agentDir": "/state/agents/maintenance-agent/agent", "tools": {"alsoAllow": maintenance_tools, "deny": builder_non_plugin_tools + builder_tools + builder_low_level_tools}},
+                {"id": "builder-agent", "workspace": str(workspace), "tools": {"alsoAllow": builder_tools + ["capability_catalog", "capability_run"], "deny": builder_non_plugin_tools + builder_low_level_tools + maintenance_tools + capability_tools[2:] + google_workspace_tools}},
+                {"id": "maintenance-agent", "workspace": str(workspace / "maintenance"), "agentDir": "/state/agents/maintenance-agent/agent", "tools": {"alsoAllow": maintenance_tools, "deny": builder_non_plugin_tools + builder_tools + builder_low_level_tools + google_workspace_tools}},
                 {"id": "capability-agent", "workspace": str(workspace / "capability"), "agentDir": "/state/agents/capability-agent/agent", "tools": {"alsoAllow": capability_tools, "deny": builder_non_plugin_tools + builder_tools + builder_low_level_tools + maintenance_tools}},
             ],
         },
         "tools": {"profile": "coding", "deny": unsafe_tools},
-        "skills": {"load": {"extraDirs": ["/opt/openclaw-builder-skill", "/opt/openclaw-maintenance-skill", "/opt/openclaw-capability-skill"]}},
+        "skills": {
+            "load": {"extraDirs": ["/opt/openclaw-builder-skill", "/opt/openclaw-maintenance-skill", "/opt/openclaw-capability-skill"]},
+            "entries": {"gog": {"enabled": False}},
+        },
+        "mcp": {
+            "servers": {
+                "google-workspace": {
+                    "command": "/usr/local/bin/gog",
+                    "args": [
+                        "--account",
+                        "${GOG_ACCOUNT}",
+                        "--readonly",
+                        "--gmail-no-send",
+                        "mcp",
+                        "--allow-tool",
+                        "gmail,calendar",
+                    ],
+                    "toolFilter": {"include": google_workspace_tools},
+                }
+            }
+        },
         "plugins": {
             "entries": {
                 "openclaw-maintenance-tools": {"enabled": True, "config": {"serviceSecret": resolved_maintenance_secret}},
                 "openclaw-capability-tools": {"enabled": True, "config": {"runtimeUrl": "http://capability-runtime:8090", "serviceSecret": resolved_maintenance_secret}},
+                "openclaw-capability-ui": {"enabled": True, "config": {"serviceSecret": resolved_maintenance_secret}},
             },
-            "load": {"paths": ["/opt/openclaw-builder-tools", "/opt/openclaw-maintenance-tools", "/opt/openclaw-capability-tools"]},
-            "allow": ["openclaw-builder-tools", "openclaw-maintenance-tools", "openclaw-capability-tools"],
+            "load": {"paths": ["/opt/openclaw-builder-tools", "/opt/openclaw-maintenance-tools", "/opt/openclaw-capability-tools", "/opt/openclaw-capability-ui"]},
+            "allow": ["openclaw-builder-tools", "openclaw-maintenance-tools", "openclaw-capability-tools", "openclaw-capability-ui"],
         },
     }
 

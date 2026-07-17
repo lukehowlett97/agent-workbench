@@ -1,5 +1,6 @@
 """Tests for persistent OpenClaw Gateway configuration."""
 
+import json
 from pathlib import Path
 
 import pytest
@@ -83,3 +84,67 @@ def test_managed_gateway_config_preserves_interactive_plugin_settings() -> None:
         "mode": "local",
         "auth": {"mode": "token"},
     }
+
+
+def test_gateway_config_disables_gog_skill_and_registers_readonly_mcp(
+    tmp_path: Path,
+) -> None:
+    config = build_gateway_config(
+        model="nvidia/test-model",
+        workspace=tmp_path / "jobs",
+        timeout_seconds=180,
+    )
+
+    assert config["skills"]["entries"]["gog"]["enabled"] is False
+
+    server = config["mcp"]["servers"]["google-workspace"]
+    assert server["command"] == "/usr/local/bin/gog"
+    assert server["args"] == [
+        "--account",
+        "${GOG_ACCOUNT}",
+        "--readonly",
+        "--gmail-no-send",
+        "mcp",
+        "--allow-tool",
+        "gmail,calendar",
+    ]
+    assert server["toolFilter"] == {
+        "include": [
+            "calendar_events",
+            "gmail_get_message",
+            "gmail_get_thread",
+            "gmail_search",
+        ]
+    }
+
+
+def test_gateway_config_keeps_secrets_out_of_generated_json(tmp_path: Path) -> None:
+    config = build_gateway_config(
+        model="nvidia/test-model",
+        workspace=tmp_path / "jobs",
+        timeout_seconds=180,
+    )
+    rendered = json.dumps(config)
+
+    assert "${GOG_ACCOUNT}" in rendered
+    assert "sensitive-account@example.com" not in rendered
+
+
+def test_builder_and_maintenance_agents_are_denied_google_mcp_tools(
+    tmp_path: Path,
+) -> None:
+    config = build_gateway_config(
+        model="nvidia/test-model",
+        workspace=tmp_path / "jobs",
+        timeout_seconds=180,
+    )
+
+    denied_tools = {
+        "calendar_events",
+        "gmail_get_message",
+        "gmail_get_thread",
+        "gmail_search",
+    }
+    for agent_id in ("builder-agent", "maintenance-agent"):
+        agent = next(item for item in config["agents"]["list"] if item["id"] == agent_id)
+        assert denied_tools.issubset(set(agent["tools"]["deny"]))

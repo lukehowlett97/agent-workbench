@@ -53,6 +53,10 @@ services:
       NPM_CONFIG_CACHE: /state/npm-cache
       OPENCLAW_GATEWAY_WORKSPACE: /data/gateway-workspace
       OPENCLAW_GATEWAY_TIMEOUT_SECONDS: "${OPENCLAW_GATEWAY_TIMEOUT_SECONDS:-300}"
+      GOG_HOME: /google
+      GOG_KEYRING_BACKEND: file
+      GOG_KEYRING_PASSWORD: "${GOG_KEYRING_PASSWORD:?Set GOG_KEYRING_PASSWORD}"
+      GOG_ACCOUNT: "${GOOGLE_ACCOUNT:?Set GOOGLE_ACCOUNT}"
     env_file:
       - /etc/techlett-maintenance/gateway.env
     ports:
@@ -61,10 +65,12 @@ services:
     volumes:
       - workbench-data:/data
       - openclaw-state:/state
+      - google-workspace-state:/google
       - /srv/projects/preview-deployment/apps/builder-tools:/opt/openclaw-builder-tools:ro
       - /srv/projects/preview-deployment/apps/builder-tools/skill:/opt/openclaw-builder-skill:ro
       - /srv/projects/preview-deployment/apps/maintenance-tools:/opt/openclaw-maintenance-tools:ro
       - /srv/projects/preview-deployment/apps/capability-tools:/opt/openclaw-capability-tools:ro
+      - /srv/projects/preview-deployment/apps/capability-ui:/opt/openclaw-capability-ui:ro
       - /srv/projects/preview-deployment/openclaw/agents/maintenance-agent/skills/openclaw-maintenance:/opt/openclaw-maintenance-skill:ro
       - /srv/projects/preview-deployment/apps/agent-workbench/agent-assets/capability-agent/skills/capability-management:/opt/openclaw-capability-skill:ro
     networks:
@@ -125,6 +131,7 @@ services:
 volumes:
   workbench-data:
   openclaw-state:
+  google-workspace-state:
 
 networks:
   preview-private:

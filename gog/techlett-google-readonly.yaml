@@ -1,0 +1,20 @@
+name: techlett-google-readonly
+version: true
+schema: true
+mcp: true
+
+gmail:
+  search: true
+  get: true
+  messages:
+    search: true
+  thread:
+    get: true
+
+calendar:
+  events: true
+
+auth:
+  doctor: true
+  list: true
+  status: true
