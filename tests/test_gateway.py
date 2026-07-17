@@ -37,6 +37,7 @@ def test_gateway_config_keeps_secrets_in_environment(tmp_path: Path) -> None:
         ]
         == "${MAINTENANCE_SERVICE_SECRET}"
     )
+    assert config["plugins"]["entries"]["openclaw-builder-tools"]["config"]["serviceSecret"] == "${BUILDER_SERVICE_SECRET}"
 
 
 def test_gateway_config_resolves_maintenance_secret() -> None:

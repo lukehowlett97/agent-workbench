@@ -26,6 +26,7 @@ def build_gateway_config(
     workspace: Path,
     timeout_seconds: int,
     maintenance_service_secret: str | None = None,
+    builder_service_secret: str | None = None,
     google_account: str | None = None,
     gog_keyring_password: str | None = None,
 ) -> dict[str, object]:
@@ -48,6 +49,11 @@ def build_gateway_config(
         maintenance_service_secret
         if maintenance_service_secret is not None
         else "${MAINTENANCE_SERVICE_SECRET}"
+    )
+    resolved_builder_secret = (
+        builder_service_secret
+        if builder_service_secret is not None
+        else "${BUILDER_SERVICE_SECRET}"
     )
     unsafe_tools = ["exec", "process", "shell", "ssh", "read", "write", "edit", "apply_patch", "browser", "web_fetch", "web_search"]
     builder_non_plugin_tools = unsafe_tools + ["get_goal", "create_goal", "update_goal", "skill_workshop", "update_plan", "sessions_list", "sessions_history", "sessions_send", "sessions_spawn", "sessions_yield", "subagents", "session_status"]
@@ -99,6 +105,7 @@ def build_gateway_config(
         },
         "plugins": {
             "entries": {
+                "openclaw-builder-tools": {"enabled": True, "config": {"serviceSecret": resolved_builder_secret}},
                 "openclaw-maintenance-tools": {"enabled": True, "config": {"serviceSecret": resolved_maintenance_secret}},
                 "openclaw-capability-tools": {"enabled": True, "config": {"runtimeUrl": "http://capability-runtime:8090", "serviceSecret": resolved_maintenance_secret}},
                 "openclaw-capability-ui": {"enabled": True, "config": {"serviceSecret": resolved_maintenance_secret}},
@@ -205,6 +212,7 @@ def main() -> None:
             workspace=workspace,
             timeout_seconds=timeout_seconds,
             maintenance_service_secret=maintenance_service_secret,
+            builder_service_secret=os.getenv("BUILDER_SERVICE_SECRET", ""),
             google_account=os.getenv("GOG_ACCOUNT", ""),
             gog_keyring_password=os.getenv("GOG_KEYRING_PASSWORD", ""),
         ),
