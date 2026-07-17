@@ -26,6 +26,8 @@ def build_gateway_config(
     workspace: Path,
     timeout_seconds: int,
     maintenance_service_secret: str | None = None,
+    google_account: str | None = None,
+    gog_keyring_password: str | None = None,
 ) -> dict[str, object]:
     """Build the pinned Gateway configuration with an optional runtime secret."""
     provider, separator, model_id = model.partition("/")
@@ -49,7 +51,7 @@ def build_gateway_config(
     )
     unsafe_tools = ["exec", "process", "shell", "ssh", "read", "write", "edit", "apply_patch", "browser", "web_fetch", "web_search"]
     builder_non_plugin_tools = unsafe_tools + ["get_goal", "create_goal", "update_goal", "skill_workshop", "update_plan", "sessions_list", "sessions_history", "sessions_send", "sessions_spawn", "sessions_yield", "subagents", "session_status"]
-    return {
+    config: dict[str, object] = {
         "gateway": {
             "mode": "local",
             "bind": "lan",
@@ -95,7 +97,18 @@ def build_gateway_config(
             "load": {"extraDirs": ["/opt/openclaw-builder-skill", "/opt/openclaw-maintenance-skill", "/opt/openclaw-capability-skill"]},
             "entries": {"gog": {"enabled": False}},
         },
-        "mcp": {
+        "plugins": {
+            "entries": {
+                "openclaw-maintenance-tools": {"enabled": True, "config": {"serviceSecret": resolved_maintenance_secret}},
+                "openclaw-capability-tools": {"enabled": True, "config": {"runtimeUrl": "http://capability-runtime:8090", "serviceSecret": resolved_maintenance_secret}},
+                "openclaw-capability-ui": {"enabled": True, "config": {"serviceSecret": resolved_maintenance_secret}},
+            },
+            "load": {"paths": ["/opt/openclaw-builder-tools", "/opt/openclaw-maintenance-tools", "/opt/openclaw-capability-tools", "/opt/openclaw-capability-ui"]},
+            "allow": ["openclaw-builder-tools", "openclaw-maintenance-tools", "openclaw-capability-tools", "openclaw-capability-ui"],
+        },
+    }
+    if google_account and gog_keyring_password:
+        config["mcp"] = {
             "servers": {
                 "google-workspace": {
                     "command": "/usr/local/bin/gog",
@@ -111,17 +124,8 @@ def build_gateway_config(
                     "toolFilter": {"include": google_workspace_tools},
                 }
             }
-        },
-        "plugins": {
-            "entries": {
-                "openclaw-maintenance-tools": {"enabled": True, "config": {"serviceSecret": resolved_maintenance_secret}},
-                "openclaw-capability-tools": {"enabled": True, "config": {"runtimeUrl": "http://capability-runtime:8090", "serviceSecret": resolved_maintenance_secret}},
-                "openclaw-capability-ui": {"enabled": True, "config": {"serviceSecret": resolved_maintenance_secret}},
-            },
-            "load": {"paths": ["/opt/openclaw-builder-tools", "/opt/openclaw-maintenance-tools", "/opt/openclaw-capability-tools", "/opt/openclaw-capability-ui"]},
-            "allow": ["openclaw-builder-tools", "openclaw-maintenance-tools", "openclaw-capability-tools", "openclaw-capability-ui"],
-        },
-    }
+        }
+    return config
 
 
 def load_existing_config(config_path: Path) -> dict[str, object]:
@@ -201,6 +205,8 @@ def main() -> None:
             workspace=workspace,
             timeout_seconds=timeout_seconds,
             maintenance_service_secret=maintenance_service_secret,
+            google_account=os.getenv("GOG_ACCOUNT", ""),
+            gog_keyring_password=os.getenv("GOG_KEYRING_PASSWORD", ""),
         ),
     )
     config_path.write_text(

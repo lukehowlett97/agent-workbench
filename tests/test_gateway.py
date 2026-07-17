@@ -13,6 +13,8 @@ def test_gateway_config_keeps_secrets_in_environment(tmp_path: Path) -> None:
         model="nvidia/test-model",
         workspace=tmp_path / "jobs",
         timeout_seconds=180,
+        google_account="operator@example.com",
+        gog_keyring_password="test-password",
     )
 
     gateway = config["gateway"]
@@ -93,6 +95,8 @@ def test_gateway_config_disables_gog_skill_and_registers_readonly_mcp(
         model="nvidia/test-model",
         workspace=tmp_path / "jobs",
         timeout_seconds=180,
+        google_account="operator@example.com",
+        gog_keyring_password="test-password",
     )
 
     assert config["skills"]["entries"]["gog"]["enabled"] is False
@@ -126,8 +130,17 @@ def test_gateway_config_keeps_secrets_out_of_generated_json(tmp_path: Path) -> N
     )
     rendered = json.dumps(config)
 
-    assert "${GOG_ACCOUNT}" in rendered
+    assert "${GOG_ACCOUNT}" not in rendered
     assert "sensitive-account@example.com" not in rendered
+
+    configured = build_gateway_config(
+        model="nvidia/test-model",
+        workspace=tmp_path / "configured-jobs",
+        timeout_seconds=180,
+        google_account="operator@example.com",
+        gog_keyring_password="test-password",
+    )
+    assert "${GOG_ACCOUNT}" in json.dumps(configured)
 
 
 def test_builder_and_maintenance_agents_are_denied_google_mcp_tools(

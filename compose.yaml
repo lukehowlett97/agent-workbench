@@ -55,8 +55,8 @@ services:
       OPENCLAW_GATEWAY_TIMEOUT_SECONDS: "${OPENCLAW_GATEWAY_TIMEOUT_SECONDS:-300}"
       GOG_HOME: /google
       GOG_KEYRING_BACKEND: file
-      GOG_KEYRING_PASSWORD: "${GOG_KEYRING_PASSWORD:?Set GOG_KEYRING_PASSWORD}"
-      GOG_ACCOUNT: "${GOOGLE_ACCOUNT:?Set GOOGLE_ACCOUNT}"
+      GOG_KEYRING_PASSWORD: "${GOG_KEYRING_PASSWORD:-}"
+      GOG_ACCOUNT: "${GOOGLE_ACCOUNT:-}"
     env_file:
       - /etc/techlett-maintenance/gateway.env
     ports:
