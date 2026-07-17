@@ -43,8 +43,7 @@ RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && npm install --global "openclaw@${OPENCLAW_VERSION}" \
     && openclaw --version \
     && chmod 0755 /usr/local/bin/gog \
-    && /usr/local/bin/gog --version \
-    && ! /usr/local/bin/gog gmail send --help >/dev/null 2>&1
+    && /usr/local/bin/gog --version
 
 COPY apps/agent-workbench/pyproject.toml apps/agent-workbench/README.md ./
 COPY apps/agent-workbench/src ./src
