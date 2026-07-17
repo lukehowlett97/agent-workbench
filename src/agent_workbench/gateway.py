@@ -34,7 +34,7 @@ def build_gateway_config(
 
     builder_tools = ["site_publish", "site_status", "site_read", "site_rollback"]
     builder_low_level_tools = ["workspace_list", "workspace_read", "workspace_write", "workspace_apply_patch", "git_create_branch", "git_diff", "git_commit", "run_build", "run_tests", "create_preview", "deploy_preview", "verify_preview"]
-    maintenance_tools = ["maintenance_status", "maintenance_capabilities", "maintenance_plan", "maintenance_execute", "maintenance_job_status", "maintenance_rollback"]
+    maintenance_tools = ["maintenance_status", "maintenance_capabilities", "maintenance_plan", "maintenance_execute", "maintenance_apply", "maintenance_job_status", "maintenance_rollback"]
     resolved_maintenance_secret = (
         maintenance_service_secret
         if maintenance_service_secret is not None
