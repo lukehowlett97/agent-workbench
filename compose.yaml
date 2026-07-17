@@ -64,11 +64,14 @@ services:
       - /srv/projects/preview-deployment/apps/builder-tools:/opt/openclaw-builder-tools:ro
       - /srv/projects/preview-deployment/apps/builder-tools/skill:/opt/openclaw-builder-skill:ro
       - /srv/projects/preview-deployment/apps/maintenance-tools:/opt/openclaw-maintenance-tools:ro
+      - /srv/projects/preview-deployment/apps/capability-tools:/opt/openclaw-capability-tools:ro
       - /srv/projects/preview-deployment/openclaw/agents/maintenance-agent/skills/openclaw-maintenance:/opt/openclaw-maintenance-skill:ro
+      - /srv/projects/preview-deployment/apps/agent-workbench/agent-assets/capability-agent/skills/capability-management:/opt/openclaw-capability-skill:ro
     networks:
       - default
       - preview-private
       - maintenance-private
+      - capability-private
     read_only: true
     tmpfs:
       - /tmp:size=512m,mode=1777,exec
@@ -130,3 +133,6 @@ networks:
   maintenance-private:
     external: true
     name: techlett-maintenance
+  capability-private:
+    external: true
+    name: techlett-capability

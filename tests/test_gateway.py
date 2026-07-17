@@ -50,6 +50,10 @@ def test_gateway_config_resolves_maintenance_secret() -> None:
         ]
         == "s" * 64
     )
+    assert "openclaw-capability-tools" in config["plugins"]["allow"]
+    assert config["agents"]["list"][-1]["id"] == "capability-agent"
+    assert "capability_install" in config["agents"]["list"][-1]["tools"]["alsoAllow"]
+    assert "capability_install" in config["agents"]["list"][0]["tools"]["deny"]
 
 
 @pytest.mark.parametrize("model", ["", "test-model", "openai/test-model", "nvidia/"])

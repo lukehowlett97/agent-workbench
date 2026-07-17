@@ -35,6 +35,7 @@ def build_gateway_config(
     builder_tools = ["site_publish", "site_status", "site_read", "site_rollback"]
     builder_low_level_tools = ["workspace_list", "workspace_read", "workspace_write", "workspace_apply_patch", "git_create_branch", "git_diff", "git_commit", "run_build", "run_tests", "create_preview", "deploy_preview", "verify_preview"]
     maintenance_tools = ["maintenance_status", "maintenance_capabilities", "maintenance_plan", "maintenance_execute", "maintenance_apply", "maintenance_job_status", "maintenance_rollback"]
+    capability_tools = ["capability_catalog", "capability_run", "capability_install", "capability_create", "capability_update", "capability_remove", "capability_status", "capability_rollback", "capability_set_mode"]
     resolved_maintenance_secret = (
         maintenance_service_secret
         if maintenance_service_secret is not None
@@ -76,20 +77,22 @@ def build_gateway_config(
                 "memorySearch": {"enabled": False},
             },
             "list": [
-                {"id": "main", "default": True, "tools": {"deny": builder_tools + builder_low_level_tools + maintenance_tools}},
-                {"id": "career", "tools": {"deny": builder_tools + builder_low_level_tools + maintenance_tools}},
-                {"id": "builder-agent", "workspace": str(workspace), "tools": {"alsoAllow": builder_tools, "deny": builder_non_plugin_tools + builder_low_level_tools + maintenance_tools}},
+                {"id": "main", "default": True, "tools": {"alsoAllow": ["capability_catalog", "capability_run"], "deny": builder_tools + builder_low_level_tools + maintenance_tools + capability_tools[2:]}},
+                {"id": "career", "tools": {"alsoAllow": ["capability_catalog", "capability_run"], "deny": builder_tools + builder_low_level_tools + maintenance_tools + capability_tools[2:]}},
+                {"id": "builder-agent", "workspace": str(workspace), "tools": {"alsoAllow": builder_tools + ["capability_catalog", "capability_run"], "deny": builder_non_plugin_tools + builder_low_level_tools + maintenance_tools + capability_tools[2:]}},
                 {"id": "maintenance-agent", "workspace": str(workspace / "maintenance"), "agentDir": "/state/agents/maintenance-agent/agent", "tools": {"alsoAllow": maintenance_tools, "deny": builder_non_plugin_tools + builder_tools + builder_low_level_tools}},
+                {"id": "capability-agent", "workspace": str(workspace / "capability"), "agentDir": "/state/agents/capability-agent/agent", "tools": {"alsoAllow": capability_tools, "deny": builder_non_plugin_tools + builder_tools + builder_low_level_tools + maintenance_tools}},
             ],
         },
         "tools": {"profile": "coding", "deny": unsafe_tools},
-        "skills": {"load": {"extraDirs": ["/opt/openclaw-builder-skill", "/opt/openclaw-maintenance-skill"]}},
+        "skills": {"load": {"extraDirs": ["/opt/openclaw-builder-skill", "/opt/openclaw-maintenance-skill", "/opt/openclaw-capability-skill"]}},
         "plugins": {
             "entries": {
                 "openclaw-maintenance-tools": {"enabled": True, "config": {"serviceSecret": resolved_maintenance_secret}},
+                "openclaw-capability-tools": {"enabled": True, "config": {"runtimeUrl": "http://capability-runtime:8090", "serviceSecret": resolved_maintenance_secret}},
             },
-            "load": {"paths": ["/opt/openclaw-builder-tools", "/opt/openclaw-maintenance-tools"]},
-            "allow": ["openclaw-builder-tools", "openclaw-maintenance-tools"],
+            "load": {"paths": ["/opt/openclaw-builder-tools", "/opt/openclaw-maintenance-tools", "/opt/openclaw-capability-tools"]},
+            "allow": ["openclaw-builder-tools", "openclaw-maintenance-tools", "openclaw-capability-tools"],
         },
     }
 
@@ -114,6 +117,22 @@ def provision_maintenance_agent(state_dir: Path) -> None:
     target.mkdir(parents=True, exist_ok=True)
     for item in source.rglob("*"):
         if not item.is_file():
+            continue
+        destination = target / item.relative_to(source)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if not destination.exists():
+            shutil.copyfile(item, destination)
+
+
+def provision_capability_agent(state_dir: Path) -> None:
+    """Seed the isolated capability agent directory without overwriting state."""
+    source = Path("/app/agent-assets/capability-agent")
+    target = state_dir / "agents" / "capability-agent" / "agent"
+    if not source.is_dir():
+        raise SystemExit("capability agent assets are missing from the Gateway image")
+    target.mkdir(parents=True, exist_ok=True)
+    for item in source.rglob("*"):
+        if not item.is_file() or "skills" in item.relative_to(source).parts:
             continue
         destination = target / item.relative_to(source)
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -146,6 +165,7 @@ def main() -> None:
     (state_dir / "home").mkdir(parents=True, exist_ok=True)
     (state_dir / "npm-cache").mkdir(parents=True, exist_ok=True)
     provision_maintenance_agent(state_dir)
+    provision_capability_agent(state_dir)
     workspace.mkdir(parents=True, exist_ok=True)
     config = merge_config(
         load_existing_config(config_path),
